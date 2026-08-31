@@ -77,5 +77,16 @@ services:
       start_period: 5s
       retries: 10
 
+  # Витрина (фуллстек): статические файлы frontend/, API — на http://localhost:3000
+  frontend:
+    image: nginx:alpine
+    container_name: tz-frontend
+    ports:
+      - "8080:80"
+    volumes:
+      - ../frontend:/usr/share/nginx/html:ro
+    depends_on:
+      - app
+
 volumes:
   pgdata:
