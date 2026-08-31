@@ -1,15 +1,38 @@
 // Воспроизведение проверки гонок (критерий 1 приёмки):
 // 50 параллельных вебхуков «paid» по одному заказу -> ровно один факт выдачи.
 //
-// ВАЖНО: скрипт сбрасывает схему и данные dev-базы (чистая среда).
-// Использование: npm run race-check   (предварительно: docker compose up -d, npm run seed)
-import { pool, waitForDb, resetSchema } from '../src/db.js';
-import { createApp } from '../src/app.js';
-import { config, setSupplierUrls } from '../src/config.js';
-import { PRODUCTS, splitPoolBetweenSuppliers } from '../src/catalog.js';
-import { createSupplierServer, seedStorePool } from '../src/suppliers/mock.js';
-import { processDeliveryJobsOnce } from '../src/services/deliveryService.js';
-import { logger } from '../src/logger.js';
+// Скрипт полностью самодостаточен: своя одноразовая БД (shop_race_<pid>), свой
+// экземпляр приложения и свои заглушки поставщиков. Изоляция по БД обязательна —
+// иначе воркер запущенного `app` (docker compose up) перехватывает job через
+// FOR UPDATE SKIP LOCKED и идёт в свои заглушки поставщиков, чей пул ключей
+// скрипту не принадлежит. Дев-база `shop` при этом не трогается.
+//
+// Использование: npm run race-check   (нужен только поднятый Postgres: docker compose up -d db)
+import pg from 'pg';
+
+const ADMIN_URL = (process.env.DATABASE_URL || 'postgres://app:app@localhost:5432/shop')
+  .replace(/\/[^/]+$/, '/postgres');
+const RACE_DB = `shop_race_${process.pid}`;
+process.env.DATABASE_URL = ADMIN_URL.replace(/\/postgres$/, `/${RACE_DB}`);
+
+async function withAdmin(fn) {
+  const admin = new pg.Client({ connectionString: ADMIN_URL });
+  await admin.connect();
+  try { return await fn(admin); } finally { await admin.end(); }
+}
+
+await withAdmin(async (admin) => {
+  const { rowCount } = await admin.query('SELECT 1 FROM pg_database WHERE datname=$1', [RACE_DB]);
+  if (rowCount === 0) await admin.query(`CREATE DATABASE ${RACE_DB}`);
+});
+
+const { pool, waitForDb, resetSchema } = await import('../src/db.js');
+const { createApp } = await import('../src/app.js');
+const { setSupplierUrls } = await import('../src/config.js');
+const { PRODUCTS, splitPoolBetweenSuppliers } = await import('../src/catalog.js');
+const { createSupplierServer, seedStorePool } = await import('../src/suppliers/mock.js');
+const { processDeliveryJobsOnce } = await import('../src/services/deliveryService.js');
+const { logger } = await import('../src/logger.js');
 
 const PARALLEL = 50;
 
@@ -75,8 +98,23 @@ async function main() {
   const statuses = responses.map((r) => r.status);
   logger.info({ all_200: statuses.every((s) => s === 200), statuses: [...new Set(statuses)] }, 'webhooks fired');
 
-  const processed = await processDeliveryJobsOnce();
-  logger.info({ processed }, 'jobs processed');
+  // Доводим выдачу до финального состояния.
+  // Свой прогон processDeliveryJobsOnce() — не единственный: если поднят app
+  // (docker compose up), его воркер заберёт job первым через FOR UPDATE SKIP LOCKED
+  // и нам вернётся processed=0. Поэтому вердикт выносим не по своему прогону,
+  // а по фактическому статусу заказа.
+  const TERMINAL = ['delivered', 'out_of_stock', 'delivery_failed', 'payment_failed'];
+  const deadline = Date.now() + 30000;
+  let processed = 0;
+  let orderStatus = null;
+  while (Date.now() < deadline) {
+    processed += await processDeliveryJobsOnce();
+    const { rows } = await pool.query('SELECT status FROM orders WHERE order_id=$1', [order.order_id]);
+    orderStatus = rows[0]?.status;
+    if (TERMINAL.includes(orderStatus)) break;
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  logger.info({ processed, orderStatus }, 'jobs processed');
 
   const final = await pool.query('SELECT * FROM orders WHERE order_id=$1', [order.order_id]);
   const okAttempts = await pool.query(`SELECT COUNT(*)::int AS n FROM delivery_attempts WHERE status='ok'`);
@@ -109,6 +147,7 @@ async function main() {
   await b.close();
   server.close();
   await pool.end();
+  await withAdmin((admin) => admin.query(`DROP DATABASE IF EXISTS ${RACE_DB} WITH (FORCE)`));
   process.exit(pass ? 0 : 1);
 }
 

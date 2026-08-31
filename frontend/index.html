@@ -126,44 +126,47 @@
 
   <section class="app-payment-card">
     <ul class="app-icons">
-      <li><a href="#" class="app-icon"><img src="images/steam.png" alt="Steam" class="app-icon-img"><span>Steam</span></a></li>
-      <li><a href="#" class="app-icon"><img src="images/telegram.png" alt="Telegram" class="app-icon-img"><span>Telegram</span></a></li>
-      <li><a href="#" class="app-icon"><img src="images/roblox.png" alt="Roblox" class="app-icon-img"><span>Roblox</span></a></li>
-      <li><a href="#" class="app-icon"><img src="images/brawl.png" alt="Brawl Stars" class="app-icon-img"><span>Brawl Stars</span></a></li>
-      <li><a href="#" class="app-icon active"><img src="images/pubg.png" alt="PUBG Mobile" class="app-icon-img"><span>PUBG Mob...</span></a></li>
-      <li><a href="#" class="app-icon"><img src="images/appstore.png" alt="App Store" class="app-icon-img"><span>App Store</span></a></li>
-      <li><a href="#" class="app-icon"><img src="images/playstation.png" alt="PlayStation" class="app-icon-img"><span>PlayStation</span></a></li>
-      <li><a href="#" class="app-icon"><img src="images/tiktok.png" alt="TikTok" class="app-icon-img"><span>TikTok</span></a></li>
-      <li><a href="#" class="app-icon"><img src="images/mlegends.png" alt="Mobile Legends" class="app-icon-img"><span>Mobile Legends</span></a></li>
-      <li><a href="#" class="app-icon more"><span class="more-circle"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 0-4 4"/><path d="M2 12h20"/><path d="M4 12c0 3 4 5 8 5s8-2 8-5"/><circle cx="12" cy="12" r="1"/></svg></span><span>ещё 841</span></a></li>
+      <li><a href="#" class="app-icon active" data-app="steam" aria-pressed="true"><img src="images/steam.png" alt="Steam" class="app-icon-img"><span>Steam</span></a></li>
+      <li><a href="#" class="app-icon" data-app="telegram" aria-pressed="false"><img src="images/telegram.png" alt="Telegram" class="app-icon-img"><span>Telegram</span></a></li>
+      <li><a href="#" class="app-icon" data-app="roblox" aria-pressed="false"><img src="images/roblox.png" alt="Roblox" class="app-icon-img"><span>Roblox</span></a></li>
+      <li><a href="#" class="app-icon" data-app="brawl" aria-pressed="false"><img src="images/brawl.png" alt="Brawl Stars" class="app-icon-img"><span>Brawl Stars</span></a></li>
+      <li><a href="#" class="app-icon" data-app="pubg" aria-pressed="false"><img src="images/pubg.png" alt="PUBG Mobile" class="app-icon-img"><span>PUBG Mobile</span></a></li>
+      <li><a href="#" class="app-icon" data-app="appstore" aria-pressed="false"><img src="images/appstore.png" alt="App Store" class="app-icon-img"><span>App Store</span></a></li>
+      <li><a href="#" class="app-icon" data-app="playstation" aria-pressed="false"><img src="images/playstation.png" alt="PlayStation" class="app-icon-img"><span>PlayStation</span></a></li>
+      <li><a href="#" class="app-icon" data-app="tiktok" aria-pressed="false"><img src="images/tiktok.png" alt="TikTok" class="app-icon-img"><span>TikTok</span></a></li>
+      <li><a href="#" class="app-icon" data-app="mlegends" aria-pressed="false"><img src="images/mlegends.png" alt="Mobile Legends" class="app-icon-img"><span>Mobile Legends</span></a></li>
+      <li><a href="#" class="app-icon more"><img src="images/Background%20(1).png" alt="Ещё 841 приложение" class="app-icon-img"><span>ещё 841</span></a></li>
     </ul>
 
     <hr class="divider">
 
     <div class="payment-row">
       <div class="selected-app">
-        <img src="images/steam.png" alt="Steam" class="app-icon-img">
+        <img src="images/steam.png" alt="Steam" class="app-icon-img" id="selectedAppImg">
         <div>
           <div class="selected-app-title">
-            <span>Пополнение Steam</span>
-            <span class="badge">5%</span>
+            <span id="selectedAppName">Пополнение Steam</span>
+            <span class="badge" id="selectedAppBadge">10%</span>
           </div>
-          <button type="button" class="promo-btn" id="steamPromoBtn">Ввести промокод</button>
+          <button type="button" class="promo-btn" id="steamPromoBtn">Промокод WELCOME10</button>
         </div>
       </div>
       <label class="input-field login-field">
-        <input type="text" placeholder="Логин Steam">
+        <input type="text" id="appLoginInput" placeholder="Логин Steam" aria-label="Логин аккаунта">
         <span class="info-dot">i</span>
       </label>
       <div class="input-field amount-field">
-        <div>
-          <div class="amount-label">Сумма</div>
-          <div class="amount-value" id="steamAmount">500₽</div>
+        <div class="amount-box">
+          <label class="amount-label" for="steamAmount">Сумма</label>
+          <div class="amount-input-wrap">
+            <input type="text" inputmode="decimal" id="steamAmount" class="amount-value" value="500" autocomplete="off" aria-label="Сумма пополнения">
+            <span class="amount-currency" id="steamCurrency">₽</span>
+          </div>
         </div>
         <div class="currency-toggle" id="currencyToggle">
-          <button type="button" class="active">$</button>
-          <button type="button">₸</button>
-          <button type="button">₽</button>
+          <button type="button" data-cur="USD">$</button>
+          <button type="button" data-cur="KZT">₸</button>
+          <button type="button" data-cur="RUB" class="active">₽</button>
         </div>
       </div>
       <button type="button" class="pay-btn" id="steamPayBtn">Оплатить 500₽</button>
@@ -174,13 +177,58 @@
   <section class="products-section">
     <div class="section-header">
       <h2>Популярные товары</h2>
+      <div class="filter-chips" id="filterChips" role="tablist"></div>
     </div>
     <div class="product-grid" id="productGrid">
       <div class="grid-loader">Загрузка товаров…</div>
     </div>
   </section>
 
+
+  <!-- ===== Reviews ===== -->
+  <section class="reviews-section">
+    <div class="section-header">
+      <div>
+        <h2>Последние отзывы</h2>
+        <div class="section-sub">Все отзывы взяты с независимой площадки</div>
+      </div>
+      <button type="button" class="show-all-btn">Показать все</button>
+    </div>
+    <div class="reviews-grid" id="reviewsGrid"></div>
+  </section>
+
 </main>
+
+<!-- ===== Footer ===== -->
+<div class="container">
+  <footer class="site-footer">
+    <nav class="footer-nav">
+      <a href="#">Стать продавцом</a>
+      <a href="#">Бонусы</a>
+      <a href="#">Поддержка</a>
+      <a href="#">Гарантии</a>
+      <a href="#">Отзывы</a>
+    </nav>
+    <div class="footer-mid">
+      <div class="social-links">
+        <a href="#" class="social-square" aria-label="ВКонтакте" style="color:#0077ff"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M15.07 2H8.93C3.33 2 2 3.33 2 8.93v6.14C2 20.67 3.33 22 8.93 22h6.14c5.6 0 6.93-1.33 6.93-6.93V8.93C22 3.33 20.66 2 15.07 2zm3.08 14.27h-1.46c-.55 0-.72-.44-1.71-1.44-.87-.83-1.24-.94-1.46-.94-.3 0-.39.08-.39.5v1.31c0 .36-.12.57-1.05.57-1.55 0-3.26-.94-4.47-2.68-1.81-2.54-2.31-4.46-2.31-4.85 0-.22.08-.42.5-.42h1.46c.37 0 .51.17.66.56.72 2.09 1.93 3.91 2.43 3.91.19 0 .27-.08.27-.55V10.1c-.06-.98-.58-1.06-.58-1.41 0-.17.14-.33.36-.33h2.3c.31 0 .42.17.42.53v2.89c0 .31.14.42.22.42.19 0 .34-.11.69-.46 1.07-1.2 1.83-3.04 1.83-3.04.1-.22.27-.42.63-.42h1.46c.44 0 .53.22.44.53-.18.85-1.98 3.39-1.98 3.39-.16.25-.22.36 0 .64.16.2.68.65 1.02 1.05.63.71 1.11 1.31 1.24 1.72.14.42-.7.63-.5.63z"/></svg></a>
+        <a href="#" class="social-square" aria-label="Telegram" style="color:#2aabee"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0a12 12 0 1 0 0 24 12 12 0 0 0 0-24zm4.906 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.16.093.36.306.2.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg></a>
+        <a href="#" class="social-square" aria-label="TikTok" style="color:#111"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg></a>
+        <a href="#" class="social-square" aria-label="YouTube" style="color:#ff0000"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></a>
+      </div>
+      <div class="payment-badges">
+        <span class="badge-visa">VISA</span>
+        <span class="badge-mir">мир</span>
+        <span class="badge-mc"><i></i><i></i></span>
+      </div>
+    </div>
+    <nav class="footer-legal">
+      <a href="#">Политика конфиденциальности</a>
+      <a href="#">Соглашение</a>
+      <a href="#">Договор-оферта</a>
+    </nav>
+  </footer>
+</div>
 
 <!-- ===== Buy modal ===== -->
 <div class="modal-backdrop" id="buyModal" hidden>
