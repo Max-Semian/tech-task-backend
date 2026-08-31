@@ -77,16 +77,25 @@ services:
       start_period: 5s
       retries: 10
 
-  # Витрина (фуллстек): статические файлы frontend/, API — на http://localhost:3000
+  # Витрина (фуллстек). Собирается тем же образом, что и на деплое, а не
+  # bind-mount'ом: под Docker Desktop + WSL2 монтирование папки хоста молча
+  # отдаёт пустой каталог, и витрина превращается в 404.
   frontend:
-    image: nginx:alpine
+    build: ../frontend
     container_name: tz-frontend
+    environment:
+      PORT: "80"
+      API_BASE: http://localhost:3000
     ports:
       - "8080:80"
-    volumes:
-      - ../frontend:/usr/share/nginx/html:ro
     depends_on:
       - app
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/healthz"]
+      interval: 5s
+      timeout: 3s
+      start_period: 5s
+      retries: 10
 
 volumes:
   pgdata:

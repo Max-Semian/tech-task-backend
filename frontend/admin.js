@@ -10,26 +10,36 @@ const STATUS_LABEL = {
 };
 const BADGE = (s) => '<span class="status-badge ' + (s || 'created') + '">' + (STATUS_LABEL[s] || s) + '</span>';
 
-// Токен админки. На публичном деплое /admin/* закрыт Bearer-токеном;
-// локально ADMIN_TOKEN не задан и заголовок просто игнорируется.
-function adminToken() {
-  let t = localStorage.getItem('adminToken');
-  if (!t) {
-    t = prompt('Токен админки (переменная ADMIN_TOKEN на сервере).\nЛокально можно оставить пустым.') || '';
-    localStorage.setItem('adminToken', t);
-  }
-  return t;
+// Токен админки. Локально ADMIN_TOKEN не задан и /admin/* открыт — поэтому
+// ничего не спрашиваем заранее, а реагируем на 401 от сервера.
+const TOKEN_KEY = 'adminToken';
+
+function authHeaders() {
+  const t = localStorage.getItem(TOKEN_KEY);
+  return t ? { authorization: 'Bearer ' + t } : {};
 }
 
 async function api(path, opts = {}) {
-  const headers = { 'content-type': 'application/json' };
-  const t = adminToken();
-  if (t) headers.authorization = 'Bearer ' + t;
-  const res = await fetch(API + path, { headers, ...opts });
+  const send = () => fetch(API + path, {
+    headers: { 'content-type': 'application/json', ...authHeaders() },
+    ...opts,
+  });
+
+  let res = await send();
+
   if (res.status === 401) {
-    localStorage.removeItem('adminToken');
-    alert('Неверный токен админки. Обновите страницу и введите заново.');
+    localStorage.removeItem(TOKEN_KEY);
+    const t = prompt('Админка защищена. Введите ADMIN_TOKEN:');
+    if (t) {
+      localStorage.setItem(TOKEN_KEY, t.trim());
+      res = await send();
+      if (res.status === 401) {
+        localStorage.removeItem(TOKEN_KEY);
+        alert('Токен не подошёл.');
+      }
+    }
   }
+
   let body = null;
   try { body = await res.json(); } catch (e) { /* no body */ }
   return { status: res.status, body };
