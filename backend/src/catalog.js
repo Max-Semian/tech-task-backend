@@ -31,6 +31,14 @@ export const KEYS = [
   'W67T-ZB0Q-1XKB', '7EQM-K09J-XKUO',
 ];
 
+// Промокоды для этапа 4 (фуллстек). Лимит соблюдается даже под параллельными запросами.
+export const PROMOCODES = [
+  { code: 'WELCOME10', type: 'percent', value: 10, currency: 'RUB', max_uses: 100 },
+  { code: 'GG500', type: 'amount', value: 500, currency: 'RUB', max_uses: 20 },
+  { code: 'LIMIT3', type: 'percent', value: 25, currency: 'RUB', max_uses: 3 },
+  { code: 'ONCEONLY', type: 'percent', value: 50, currency: 'RUB', max_uses: 1 },
+];
+
 // Синтетический каталог для Этапа 5 (каталог под нагрузкой, «тысячи+ SKU»).
 // Используется scripts/seed-bench.js и test/catalog.test.js.
 export function generateSyntheticProducts(count = 10000) {

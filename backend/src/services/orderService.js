@@ -1,5 +1,6 @@
 import { pool, withTransaction } from '../db.js';
 import { linkUnappliedEvents } from './paymentService.js';
+import { applyPromocode } from './promoService.js';
 import { ApiError } from '../errors.js';
 import { logger } from '../logger.js';
 
@@ -17,7 +18,7 @@ function generateOrderId() {
 //   3. Новый `order_id` + `idempotency_key`, занятый ДРУГИМ заказом -> 409 conflict
 //      (не подменяем order_id тихо).
 //   4. Гонка двух одинаковых POST -> выигрывает существующий заказ (200), дубль не создаётся.
-export async function createOrderWithLink({ sku, idempotencyKey = null, orderId = null }) {
+export async function createOrderWithLink({ sku, idempotencyKey = null, orderId = null, promocode = null }) {
   return withTransaction(pool, async (tx) => {
     // 1) order_id первичен
     if (orderId) {
@@ -45,12 +46,25 @@ export async function createOrderWithLink({ sku, idempotencyKey = null, orderId 
     const publicId = orderId || generateOrderId();
     let order;
     try {
+      // savepoint ДО списания промокода: при неудачной вставке заказа откат вернёт
+      // и использованный промокод (этап 4: гонки двух одинаковых POST не жгут лимит)
       await tx.query('SAVEPOINT sp_order');
+
+      // 4) промокод: атомарное списание использования + расчёт скидки (этап 4)
+      let promoCode = null;
+      let discount = 0;
+      if (promocode) {
+        const promo = await applyPromocode(tx, promocode, product.rows[0].price);
+        promoCode = promo.code;
+        discount = promo.discount;
+      }
+      const finalAmount = Math.max(0, product.rows[0].price - discount);
+
       const res = await tx.query(
-        `INSERT INTO orders (order_id, idempotency_key, amount, currency)
-         VALUES ($1,$2,$3,$4)
+        `INSERT INTO orders (order_id, idempotency_key, amount, currency, promo_code, promo_discount)
+         VALUES ($1,$2,$3,$4,$5,$6)
          RETURNING *`,
-        [publicId, idempotencyKey, product.rows[0].price, product.rows[0].currency],
+        [publicId, idempotencyKey, finalAmount, product.rows[0].currency, promoCode, discount],
       );
       order = res.rows[0];
     } catch (e) {

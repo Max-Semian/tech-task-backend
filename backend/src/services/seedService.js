@@ -1,12 +1,18 @@
 import { withTransaction } from '../db.js';
-import { PRODUCTS, splitPoolBetweenSuppliers } from '../catalog.js';
+import { PRODUCTS, PROMOCODES, splitPoolBetweenSuppliers } from '../catalog.js';
 import { logger } from '../logger.js';
 
 // Каталог + зеркало остатков, если таблицы пусты.
 // Используется при старте приложения (Docker: авто-сид) и scripts/seed.js (после TRUNCATE).
 export async function seedIfEmpty(poolInstance) {
   const res = await poolInstance.query('SELECT COUNT(*)::int AS n FROM products');
-  if (res.rows[0].n > 0) return { seeded: false, reason: 'products_exist' };
+  if (res.rows[0].n > 0) {
+    // продукты уже есть (старая БД), но промокоды могли не появиться — досеем идемпотентно
+    await withTransaction(poolInstance, async (tx) => {
+      await seedPromocodesTx(tx);
+    });
+    return { seeded: false, reason: 'products_exist' };
+  }
 
   return withTransaction(poolInstance, async (tx) => {
     for (const p of PRODUCTS) {
@@ -30,7 +36,19 @@ export async function seedIfEmpty(poolInstance) {
         [sku, n],
       );
     }
+    await seedPromocodesTx(tx);
     logger.info({ products: PRODUCTS.length }, 'catalog seeded');
     return { seeded: true, products: PRODUCTS.length };
   });
+}
+
+async function seedPromocodesTx(tx) {
+  for (const p of PROMOCODES) {
+    await tx.query(
+      `INSERT INTO promocodes (code, type, value, currency, max_uses)
+       VALUES ($1,$2,$3,$4,$5)
+       ON CONFLICT (code) DO NOTHING`,
+      [p.code, p.type, p.value, p.currency, p.max_uses],
+    );
+  }
 }

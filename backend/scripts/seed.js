@@ -10,7 +10,7 @@ async function main() {
 
   await pool.query(
     `TRUNCATE products, order_items, orders, payment_events,
-       delivery_attempts, delivery_jobs, money_ledger, stock_mirror
+       delivery_attempts, delivery_jobs, money_ledger, stock_mirror, promocodes
      RESTART IDENTITY CASCADE`,
   );
 

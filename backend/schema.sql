@@ -36,11 +36,17 @@ CREATE TABLE IF NOT EXISTS orders (
   amount          BIGINT NOT NULL,
   currency        TEXT NOT NULL DEFAULT 'RUB',
   code            TEXT,                     -- выданный ключ (при delivered)
+  promo_code      TEXT,                     -- применённый промокод (этап 4)
+  promo_discount  BIGINT NOT NULL DEFAULT 0,-- размер скидки
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   paid_at         TIMESTAMPTZ,
   delivered_at    TIMESTAMPTZ,
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- миграция для уже существующих БД
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS promo_code TEXT;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS promo_discount BIGINT NOT NULL DEFAULT 0;
 
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 
@@ -119,3 +125,14 @@ CREATE TABLE IF NOT EXISTS money_ledger (
 
 -- Ровно один платёж на заказ -> сумма журнала всегда сходится с оплаченными заказами
 CREATE UNIQUE INDEX IF NOT EXISTS uq_ledger_order_type ON money_ledger(order_id, entry_type);
+
+-- Промокоды (фуллстек, Этап 4): лимит соблюдается атомарным инкрементом
+CREATE TABLE IF NOT EXISTS promocodes (
+  code       TEXT PRIMARY KEY,
+  type       TEXT NOT NULL,                 -- percent | amount
+  value      BIGINT NOT NULL,               -- проценты (10 = 10%) или сумма (500)
+  currency   TEXT NOT NULL DEFAULT 'RUB',
+  max_uses   INTEGER NOT NULL,
+  used_count INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);

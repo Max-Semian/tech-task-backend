@@ -2,7 +2,7 @@ import pg from 'pg';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PRODUCTS, splitPoolBetweenSuppliers } from '../src/catalog.js';
+import { PRODUCTS, PROMOCODES, splitPoolBetweenSuppliers } from '../src/catalog.js';
 import { createSupplierServer, seedStorePool } from '../src/suppliers/mock.js';
 import { setSupplierUrls, config } from '../src/config.js';
 
@@ -35,7 +35,7 @@ export async function setupDb() {
   const { pool } = await import('../src/db.js');
   await pool.query(
     `DROP TABLE IF EXISTS money_ledger, delivery_jobs, delivery_attempts,
-       payment_events, order_items, orders, stock_mirror, products CASCADE`,
+       payment_events, order_items, orders, stock_mirror, products, promocodes CASCADE`,
   );
   const sql = fs.readFileSync(SCHEMA_PATH, 'utf8');
   await pool.query(sql);
@@ -49,6 +49,17 @@ export async function seedProducts(pool) {
        VALUES ($1,$2,$3,$4,$5,$6)
        ON CONFLICT (sku) DO NOTHING`,
       [p.sku, p.name, p.type, p.price, p.currency, p.image],
+    );
+  }
+}
+
+export async function seedPromocodes(pool) {
+  for (const p of PROMOCODES) {
+    await pool.query(
+      `INSERT INTO promocodes (code, type, value, currency, max_uses)
+       VALUES ($1,$2,$3,$4,$5)
+       ON CONFLICT (code) DO NOTHING`,
+      [p.code, p.type, p.value, p.currency, p.max_uses],
     );
   }
 }
