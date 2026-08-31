@@ -27,9 +27,29 @@ exactly-once держатся на UNIQUE-констрейнтах, CAS-пере
 
 ## Быстрый старт
 
+### Полный запуск в Docker (одна команда)
+
+```bash
+docker compose up -d --build    # db + app(:3000) + supplier-a + supplier-b
+```
+
+- `db` — PostgreSQL 16 (healthcheck)
+- `app` — API + фоновые воркеры выдачи/recovery; авто-сид каталога при старте (чистая БД)
+- `supplier-a` / `supplier-b` — заглушки поставщиков (healthcheck по `/stock`)
+
+Проверка: `curl http://127.0.0.1:3000/health`.
+
+Сценарии «в бою»:
+- выдача ключа: `POST /orders` → `POST /webhook/payment` → `GET /orders/:id` (`delivered`)
+- fallback: `docker compose stop supplier-a` → создать/оплатить заказ → выдача произойдёт
+  через supplier-b (проверено: A — `timeout_exhausted`, B — `ok`)
+- 50 параллельных вебхуков: ровно одна выдача, одна запись в `money_ledger`
+
+### Локальный запуск (без Docker для приложения)
+
 ```bash
 # 1) БД
-docker compose up -d          # PostgreSQL 16 на :5432 (app/app/shop)
+docker compose up -d db          # PostgreSQL 16 на :5432 (app/app/shop)
 
 # 2) зависимости
 npm install
