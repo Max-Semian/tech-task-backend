@@ -8,16 +8,35 @@ function generateOrderId() {
 }
 
 // Создание заказа по SKU + линковка событий оплаты, пришедших раньше (критерий 3).
+//
+// Семантика идемпотентности (приоритет):
+//   1. `order_id` — ПЕРВИЧЕН. Если существует -> возвращается этот заказ (200),
+//      переданные `sku` и `idempotency_key` игнорируются (никакого 409 из-за другого SKU).
+//   2. `idempotency_key` — вторичный, применяется только когда `order_id` не передан:
+//      если ключ уже существует -> возвращается этот заказ (200).
+//   3. Новый `order_id` + `idempotency_key`, занятый ДРУГИМ заказом -> 409 conflict
+//      (не подменяем order_id тихо).
+//   4. Гонка двух одинаковых POST -> выигрывает существующий заказ (200), дубль не создаётся.
 export async function createOrderWithLink({ sku, idempotencyKey = null, orderId = null }) {
   return withTransaction(pool, async (tx) => {
-    // идемпотентность: повтор с тем же idempotency_key/order_id возвращает существующий заказ
-    if (idempotencyKey) {
-      const existing = await tx.query('SELECT * FROM orders WHERE idempotency_key=$1', [idempotencyKey]);
-      if (existing.rows.length) return { order: existing.rows[0], created: false };
-    }
+    // 1) order_id первичен
     if (orderId) {
       const existing = await tx.query('SELECT * FROM orders WHERE order_id=$1', [orderId]);
       if (existing.rows.length) return { order: existing.rows[0], created: false };
+    }
+
+    // 2) idempotency_key — вторичный (только когда order_id не задан)
+    if (idempotencyKey && !orderId) {
+      const existing = await tx.query('SELECT * FROM orders WHERE idempotency_key=$1', [idempotencyKey]);
+      if (existing.rows.length) return { order: existing.rows[0], created: false };
+    }
+
+    // 3) order_id новый, но idempotency_key уже занят ДРУГИМ заказом -> явный конфликт 409.
+    //    Проверяем до вставки: после ошибки INSERT транзакция в PG переходит в aborted-состояние
+    //    и запросы в ней не выполняются.
+    if (orderId && idempotencyKey) {
+      const taken = await tx.query('SELECT 1 FROM orders WHERE idempotency_key=$1', [idempotencyKey]);
+      if (taken.rows.length) throw new ApiError(409, 'idempotency_key_conflict');
     }
 
     const product = await tx.query('SELECT * FROM products WHERE sku=$1', [sku]);
@@ -26,6 +45,7 @@ export async function createOrderWithLink({ sku, idempotencyKey = null, orderId 
     const publicId = orderId || generateOrderId();
     let order;
     try {
+      await tx.query('SAVEPOINT sp_order');
       const res = await tx.query(
         `INSERT INTO orders (order_id, idempotency_key, amount, currency)
          VALUES ($1,$2,$3,$4)
@@ -34,13 +54,19 @@ export async function createOrderWithLink({ sku, idempotencyKey = null, orderId 
       );
       order = res.rows[0];
     } catch (e) {
-      // гонка двух одинаковых POST /orders: UNIQUE сработал, вернуть существующий
+      // транзакция после ошибки aborted: откатываемся к savepoint, чтобы можно было читать
+      await tx.query('ROLLBACK TO SAVEPOINT sp_order').catch(() => {});
+      // UNIQUE-констрейнт сработал — это гонка двух одинаковых POST /orders
       if (e.code === '23505') {
-        const existing = await tx.query(
-          'SELECT * FROM orders WHERE order_id=$1 OR idempotency_key=$2 LIMIT 1',
-          [publicId, idempotencyKey],
-        );
-        if (existing.rows.length) return { order: existing.rows[0], created: false };
+        if (orderId) {
+          const byOrder = await tx.query('SELECT * FROM orders WHERE order_id=$1', [publicId]);
+          if (byOrder.rows.length) return { order: byOrder.rows[0], created: false };
+          // order_id новый, но idempotency_key занят ДРУГИМ заказом -> явный конфликт
+          throw new ApiError(409, 'idempotency_key_conflict');
+        }
+        // order_id не задан -> конфликт только по idempotency_key, это гонка
+        const byKey = await tx.query('SELECT * FROM orders WHERE idempotency_key=$1', [idempotencyKey]);
+        if (byKey.rows.length) return { order: byKey.rows[0], created: false };
       }
       throw e;
     }
