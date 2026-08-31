@@ -182,7 +182,8 @@ export async function createSupplierServer({ port = 0, name = 'mock', store: pro
     }
   });
 
-  await new Promise((resolve) => server.listen(port, '127.0.0.1', resolve));
+  // bind на все интерфейсы: в Docker поставщик должен быть доступен другим контейнерам
+  await new Promise((resolve) => server.listen(port, '0.0.0.0', resolve));
   const actualPort = server.address().port;
   return { server, store, port: actualPort, close: () => new Promise((r) => server.close(r)) };
 }
