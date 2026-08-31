@@ -1,0 +1,15 @@
+# Зависимости — в истории они уже есть, но новые попадать не должны
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+
+# Секреты и локальные окружения
+.env
+.env.*
+!.env.example
+
+# Артефакты
+*.log
+screenshot-*.png
+.DS_Store

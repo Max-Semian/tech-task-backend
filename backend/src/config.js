@@ -20,6 +20,10 @@ export const config = {
   workerId: process.env.WORKER_ID || `worker-${process.pid}`,
   databaseUrl: process.env.DATABASE_URL || 'postgres://app:app@localhost:5432/shop',
 
+  // Токен админки. Пустой — защита выключена (локальный запуск, тесты, как в ТЗ).
+  // На публичном деплое обязателен: /admin/* умеет менять остатки и выдачу.
+  adminToken: process.env.ADMIN_TOKEN || '',
+
   supplierA: {
     url: process.env.SUPPLIER_A_URL || 'http://127.0.0.1:4100',
     errorRate: float(process.env.SUPPLIER_A_ERROR_RATE, 0.2),

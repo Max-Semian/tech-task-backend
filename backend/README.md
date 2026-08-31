@@ -331,6 +331,23 @@ npm run supplier-failure-demo
 `DELIVERY_MAX_ATTEMPTS`, `DELIVERY_MAX_TIMEOUT_RETRIES`, `WORKER_POLL_INTERVAL_MS`,
 `RECOVERY_INTERVAL_MS`, `STUCK_AFTER_MS`, `LOG_LEVEL`, … (см. `src/config.js`).
 
+### `ADMIN_TOKEN` — защита админки
+
+`/admin/*` умеет пополнять остатки и запускать повторную выдачу, поэтому наружу
+её пускать нельзя. Поведение:
+
+- **не задан** — проверка выключена. Локальный запуск и тесты работают как раньше;
+  ТЗ это допускает («без авторизации или с простым токеном для админки»).
+- **задан** — каждый запрос к `/admin/*` требует `Authorization: Bearer <token>`,
+  иначе `401`. Токен сравнивается за постоянное время.
+
+На публичном деплое переменная **обязательна**. Страница `admin.html` спрашивает
+токен один раз и держит его в `localStorage`; при `401` очищает и просит заново.
+
+```bash
+curl -H "Authorization: Bearer $ADMIN_TOKEN" http://localhost:3000/admin/reconciliation
+```
+
 ---
 
 ## Структура

@@ -6,6 +6,16 @@ import { productsRouter } from './routes/products.js';
 import { promoRouter } from './routes/promo.js';
 import { logger } from './logger.js';
 import { ApiError } from './errors.js';
+import { config } from './config.js';
+import crypto from 'node:crypto';
+
+// Сравнение за постоянное время: обычное === даёт утечку по таймингу.
+function timingSafeEqualStr(a, b) {
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  if (ab.length !== bb.length) return false;
+  return crypto.timingSafeEqual(ab, bb);
+}
 
 export function createApp() {
   const app = express();
@@ -30,7 +40,17 @@ export function createApp() {
   app.get('/health', (req, res) => res.json({ ok: true }));
   app.use('/orders', ordersRouter);
   app.use('/webhook/payment', webhookRouter);
-  app.use('/admin', adminRouter);
+  // Админка меняет остатки и повторную выдачу — наружу её пускать нельзя.
+  // Если ADMIN_TOKEN не задан (локально, тесты), проверка отключена: ТЗ
+  // разрешает «без авторизации или с простым токеном».
+  app.use('/admin', (req, res, next) => {
+    const expected = config.adminToken;
+    if (!expected) return next();
+    const got = (req.get('authorization') || '').replace(/^Bearer\s+/i, '');
+    if (got && timingSafeEqualStr(got, expected)) return next();
+    res.set('WWW-Authenticate', 'Bearer');
+    return res.status(401).json({ error: 'unauthorized' });
+  }, adminRouter);
   app.use('/products', productsRouter);
   app.use('/promo', promoRouter);
 

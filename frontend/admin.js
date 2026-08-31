@@ -10,11 +10,26 @@ const STATUS_LABEL = {
 };
 const BADGE = (s) => '<span class="status-badge ' + (s || 'created') + '">' + (STATUS_LABEL[s] || s) + '</span>';
 
+// Токен админки. На публичном деплое /admin/* закрыт Bearer-токеном;
+// локально ADMIN_TOKEN не задан и заголовок просто игнорируется.
+function adminToken() {
+  let t = localStorage.getItem('adminToken');
+  if (!t) {
+    t = prompt('Токен админки (переменная ADMIN_TOKEN на сервере).\nЛокально можно оставить пустым.') || '';
+    localStorage.setItem('adminToken', t);
+  }
+  return t;
+}
+
 async function api(path, opts = {}) {
-  const res = await fetch(API + path, {
-    headers: { 'content-type': 'application/json' },
-    ...opts,
-  });
+  const headers = { 'content-type': 'application/json' };
+  const t = adminToken();
+  if (t) headers.authorization = 'Bearer ' + t;
+  const res = await fetch(API + path, { headers, ...opts });
+  if (res.status === 401) {
+    localStorage.removeItem('adminToken');
+    alert('Неверный токен админки. Обновите страницу и введите заново.');
+  }
   let body = null;
   try { body = await res.json(); } catch (e) { /* no body */ }
   return { status: res.status, body };
