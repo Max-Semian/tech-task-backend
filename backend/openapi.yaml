@@ -1,0 +1,326 @@
+openapi: 3.0.3
+info:
+  title: Магазин цифровых товаров — API
+  version: "1.0.0"
+  description: |
+    Ядро магазина цифровых товаров: заказы по SKU, вебхук оплаты, автоматическая
+    выдача ключей через поставщиков-заглушек A/B, восстановление и сверка.
+
+    **Гарантии.** Вебхук идемпотентен по `event_id` и может прийти раньше заказа или
+    не по порядку. Повторная выдача не создаёт вторую: `request_id` к поставщику
+    дедуплицируется, поэтому таймаут не считается отказом. Скидку по промокоду
+    считает только сервер — сумме от клиента доверия нет.
+
+    Авторизации нет: по ТЗ она не проверяется, `/admin/*` открыт.
+servers:
+  - url: http://localhost:3000
+    description: Локальный запуск (docker compose up -d)
+
+tags:
+  - name: Витрина
+  - name: Заказы
+  - name: Оплата
+  - name: Промокоды
+  - name: Админка
+
+paths:
+  /health:
+    get:
+      tags: [Витрина]
+      summary: Проверка живости
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: { ok: { type: boolean, example: true } }
+
+  /products:
+    get:
+      tags: [Витрина]
+      summary: Каталог с остатками
+      description: Остаток берётся из зеркала `stock_mirror`, обновляемого транзакционно при выдаче и пополнении.
+      responses:
+        "200":
+          description: Список товаров
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Product" }
+              example:
+                - sku: GIFT-PSN-1000
+                  name: PlayStation Store карта 1000 ₽
+                  type: giftcard
+                  price: 1000
+                  currency: RUB
+                  image: assets/psn.png
+                  available: 4
+
+  /orders:
+    post:
+      tags: [Заказы]
+      summary: Создать заказ по SKU
+      description: |
+        `idempotency_key` — повтор возвращает тот же заказ с кодом `200` вместо `201`.
+        `order_id` можно задать явно: это позволяет воспроизвести сценарий «вебхук
+        пришёл раньше заказа». `promocode` списывается атомарно, скидку считает сервер.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sku]
+              properties:
+                sku: { type: string, example: KEY-CS2-PRIME }
+                idempotency_key: { type: string, nullable: true }
+                order_id: { type: string, nullable: true, description: Публичный id; позволяет принять вебхук до создания заказа }
+                promocode: { type: string, nullable: true, example: WELCOME10 }
+      responses:
+        "201":
+          description: Заказ создан
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Order" }
+        "200":
+          description: Повтор по `idempotency_key` — тот же заказ
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Order" }
+        "400": { $ref: "#/components/responses/Error", description: "`sku_required`" }
+        "404": { $ref: "#/components/responses/Error", description: "`sku_not_found`, `promocode_not_found`" }
+        "409": { $ref: "#/components/responses/Error", description: "`idempotency_key_conflict`, `promocode_limit_reached`" }
+
+  /orders/{id}:
+    get:
+      tags: [Заказы]
+      summary: Получить заказ
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string }, example: ord_00123 }
+      responses:
+        "200": { description: Заказ, content: { application/json: { schema: { $ref: "#/components/schemas/Order" } } } }
+        "404": { $ref: "#/components/responses/Error", description: "`order_not_found`" }
+
+  /orders/{id}/pay:
+    post:
+      tags: [Оплата]
+      summary: Эмуляция оплаты (успех/неуспех)
+      description: |
+        Кнопка «оплатить» из ТЗ. Генерирует `event_id` и применяет тот же обработчик,
+        что и публичный вебхук, — то есть это честная заглушка платёжки, а не обход.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string, enum: [paid, failed], default: paid }
+      responses:
+        "200":
+          description: Событие принято
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WebhookAck" }
+              example: { accepted: true, order_id: ord_00123, status: paid, duplicate: false, applied: true }
+        "400": { $ref: "#/components/responses/Error", description: "`invalid_pay_status`" }
+        "404": { $ref: "#/components/responses/Error", description: "`order_not_found`" }
+
+  /webhook/payment:
+    post:
+      tags: [Оплата]
+      summary: Вебхук платёжной системы
+      description: |
+        Контракт из ТЗ. Доставка at-least-once: повтор с тем же `event_id` возвращает
+        `duplicate: true` и ничего не меняет. Событие по ещё не созданному заказу
+        сохраняется и применяется при его создании — без потери и без дубля.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [event_id, order_id, status]
+              properties:
+                event_id: { type: string, example: evt_a1b2c3 }
+                order_id: { type: string, example: ord_00123 }
+                status: { type: string, enum: [paid, failed] }
+                amount: { type: integer, example: 500 }
+                currency: { type: string, example: RUB }
+                created_at: { type: string, format: date-time }
+      responses:
+        "200":
+          description: Принято
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WebhookAck" }
+              examples:
+                Первое событие: { value: { accepted: true, duplicate: false, applied: true } }
+                Повтор того же event_id: { value: { accepted: true, duplicate: true, applied: false } }
+        "400": { $ref: "#/components/responses/Error", description: "`invalid_webhook`" }
+
+  /promo/validate:
+    post:
+      tags: [Промокоды]
+      summary: Проверить промокод без списания
+      description: Только предпросмотр скидки для UI. Использование списывается при создании заказа.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, amount]
+              properties:
+                code: { type: string, example: WELCOME10 }
+                amount: { type: integer, example: 1290 }
+      responses:
+        "200":
+          description: Код валиден
+          content:
+            application/json:
+              example: { valid: true, code: WELCOME10, type: percent, value: 10, discount: 129, final_amount: 1161, used: 0, max_uses: 100 }
+        "400":
+          description: "`code_and_amount_required`, `invalid_amount`"
+          content: { application/json: { example: { valid: false, reason: invalid_amount } } }
+        "404":
+          description: "`promocode_not_found`"
+          content: { application/json: { example: { valid: false, reason: promocode_not_found } } }
+        "409":
+          description: "`promocode_limit_reached`"
+          content: { application/json: { example: { valid: false, reason: promocode_limit_reached } } }
+
+  /admin/reconciliation:
+    get:
+      tags: [Админка]
+      summary: Сверка и баланс журнала денег
+      description: Находит «оплачен, но не выдан» и «выдан, но не оплачен». `balance.ok` означает, что журнал сходится с суммой оплаченных заказов.
+      responses:
+        "200":
+          description: Отчёт сверки
+          content:
+            application/json:
+              example:
+                paid_not_delivered:
+                  - { order_id: ord_00123, status: out_of_stock, amount: "1161", currency: RUB, created_at: "2026-01-01T12:00:00Z", updated_at: "2026-01-01T12:00:01Z" }
+                delivered_not_paid: []
+                balance: { ledger_total: 1161, paid_orders_total: 1161, ok: true }
+
+  /admin/orders/{id}/redeliver:
+    post:
+      tags: [Админка]
+      summary: Повторная выдача (идемпотентна)
+      description: >-
+        Безопасна для `out_of_stock` и `delivery_failed`. Для уже финального заказа
+        возвращает `changed: false` и не выдаёт второй код.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Результат
+          content:
+            application/json:
+              examples:
+                Поставлено в очередь: { value: { order_id: ord_00123, status: out_of_stock, changed: true } }
+                Уже выдан — no-op: { value: { order_id: ord_00123, status: delivered, changed: false } }
+        "404": { $ref: "#/components/responses/Error", description: "`order_not_found`" }
+        "409": { $ref: "#/components/responses/Error", description: "`cannot_redeliver_status_<статус>`" }
+
+  /admin/stock/{sku}/restock:
+    post:
+      tags: [Админка]
+      summary: Пополнить остаток
+      description: Добавляет коды обоим поставщикам (разными половинами, чтобы один код не попал в два пула) и увеличивает зеркало остатков.
+      parameters:
+        - { name: sku, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                count: { type: integer, default: 1, minimum: 1, maximum: 1000 }
+      responses:
+        "200":
+          description: Пополнено
+          content:
+            application/json:
+              example: { sku: KEY-CS2-PRIME, added: 10, suppliers: { a: true, b: true } }
+
+  /admin/ledger:
+    get:
+      tags: [Админка]
+      summary: Журнал денежных движений
+      responses:
+        "200":
+          description: Записи журнала
+          content:
+            application/json:
+              example:
+                entries:
+                  - { id: "2", order_id: ord_00123, entry_type: payment, amount: "1990", currency: RUB, event_key: evt_a1b2c3, created_at: "2026-01-01T12:00:00Z" }
+                total: 1990
+
+components:
+  responses:
+    Error:
+      description: Ошибка
+      content:
+        application/json:
+          schema:
+            type: object
+            properties: { error: { type: string } }
+
+  schemas:
+    Product:
+      type: object
+      properties:
+        sku: { type: string }
+        name: { type: string }
+        type: { type: string, enum: [topup, key, subscription, giftcard] }
+        price: { type: integer, description: Целые единицы валюты }
+        currency: { type: string }
+        image: { type: string }
+        available: { type: integer, description: Остаток из зеркала }
+
+    OrderItem:
+      type: object
+      properties:
+        sku: { type: string }
+        qty: { type: integer }
+        price: { type: integer }
+        currency: { type: string }
+
+    Order:
+      type: object
+      properties:
+        order_id: { type: string, example: ord_00123 }
+        status: { $ref: "#/components/schemas/OrderStatus" }
+        amount: { type: integer, description: Сумма к оплате уже со скидкой }
+        currency: { type: string }
+        code: { type: string, nullable: true, description: Выданный ключ; не null только при delivered }
+        promo_code: { type: string, nullable: true }
+        promo_discount: { type: integer }
+        items: { type: array, items: { $ref: "#/components/schemas/OrderItem" } }
+        created_at: { type: string, format: date-time }
+        paid_at: { type: string, format: date-time, nullable: true }
+        delivered_at: { type: string, format: date-time, nullable: true }
+
+    OrderStatus:
+      type: string
+      description: |
+        Основной путь: `created` → `paid` → `delivering` → `delivered`.
+        Восстановимые: `out_of_stock`, `delivery_failed` — заказ не падает и доводится
+        фоновым воркером либо через `/admin/orders/{id}/redeliver`.
+      enum: [created, paid, delivering, delivered, payment_failed, out_of_stock, delivery_failed]
+
+    WebhookAck:
+      type: object
+      properties:
+        accepted: { type: boolean }
+        duplicate: { type: boolean, description: Событие с таким event_id уже приходило }
+        applied: { type: boolean, description: Событие изменило состояние заказа }
