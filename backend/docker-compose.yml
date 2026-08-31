@@ -50,9 +50,9 @@ services:
     environment:
       SUPPLIER_NAME: A
       PORT: "4100"
-      ERROR_RATE: "0.2"
-      TIMEOUT_RATE: "0.1"
-      TIMEOUT_MS: "3000"
+      ERROR_RATE: ${SUPPLIER_A_ERROR_RATE:-0.2}
+      TIMEOUT_RATE: ${SUPPLIER_A_TIMEOUT_RATE:-0.1}
+      TIMEOUT_MS: ${SUPPLIER_A_TIMEOUT_MS:-3000}
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4100/stock"]
       interval: 5s
@@ -67,9 +67,9 @@ services:
     environment:
       SUPPLIER_NAME: B
       PORT: "4200"
-      ERROR_RATE: "0.3"
-      TIMEOUT_RATE: "0.1"
-      TIMEOUT_MS: "3000"
+      ERROR_RATE: ${SUPPLIER_B_ERROR_RATE:-0.3}
+      TIMEOUT_RATE: ${SUPPLIER_B_TIMEOUT_RATE:-0.1}
+      TIMEOUT_MS: ${SUPPLIER_B_TIMEOUT_MS:-3000}
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4200/stock"]
       interval: 5s
