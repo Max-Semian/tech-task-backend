@@ -107,7 +107,7 @@ function initCatalogMenu() {
   document.addEventListener('click', (e) => {
     if (!btn.contains(e.target) && !menu.contains(e.target)) close();
   });
-  menu.querySelectorAll('a').forEach((a) => {
+  menu.querySelectorAll('a[data-cat]').forEach((a) => {
     a.addEventListener('click', (e) => {
       e.preventDefault();
       const cat = a.dataset.cat;

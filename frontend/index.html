@@ -11,26 +11,98 @@
 </head>
 <body>
 
-<header class="site-header">
+<header class="site-header" style="position: relative;">
   <div class="container header-inner">
     <div class="catalog-wrap">
       <button class="catalog-btn" id="catalogBtn" aria-haspopup="true" aria-expanded="false">
-        <span class="burger-icon"><span></span><span></span><span></span></span>
+        <svg class="icon-20" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h6v6H4zm10 0h6v6h-6zM4 14h6v6H4zm10 0h6v6h-6z"/></svg>
         <span>Каталог</span>
       </button>
-      <nav class="catalog-menu" id="catalogMenu" hidden>
-        <a href="#" data-cat="topup">Пополнение Steam</a>
-        <a href="#" data-cat="key">Ключи игр</a>
-        <a href="#" data-cat="subscription">Подписки</a>
-        <a href="#" data-cat="giftcard">Gift-карты</a>
-        <a href="#" data-cat="all">Все товары</a>
-      </nav>
     </div>
     <div class="search-bar">
       <input type="text" id="searchInput" placeholder="Игра, приложение или услуга...">
-      <button class="search-submit-btn" aria-label="Поиск">🔍</button>
+      <button class="search-fav-btn" aria-label="Избранное">
+        <svg class="icon-14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+      </button>
+      <button class="search-submit-btn" aria-label="Поиск">
+        <svg class="icon-14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      </button>
     </div>
-    <a class="profile-btn" href="admin.html" title="Админка">⚙️</a>
+    <a class="profile-btn" href="admin.html" title="Админка">
+      <svg class="icon-20" viewBox="0 0 24 24" fill="currentColor" style="color: #6b7280;"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+    </a>
+
+    <!-- Mega Menu -->
+    <nav class="catalog-menu" id="catalogMenu" hidden>
+      <div class="catalog-menu-inner">
+        <div class="catalog-menu-sidebar">
+          <a href="#" class="active"><span>Игры и игровые сервисы</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></a>
+          <a href="#"><span>Игровые ценности</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></a>
+          <a href="#"><span>Мобильные игры</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></a>
+          <a href="#"><span>Сервисы и соцсети</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></a>
+          <a href="#"><span>Программы</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></a>
+        </div>
+        <div class="catalog-menu-content">
+          <div class="catalog-col">
+            <div class="catalog-group">
+              <h4>Steam <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></h4>
+              <a href="#" data-cat="key">Игры и DLC</a>
+              <a href="#" data-cat="topup">Пополнение баланса</a>
+              <a href="#" data-cat="giftcard">Подарочные карты</a>
+              <a href="#">Коллекционные карточки</a>
+              <a href="#">Смена региона</a>
+            </div>
+            <div class="catalog-group">
+              <h4>Подборки <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></h4>
+              <a href="#">Скидки 90%</a>
+              <a href="#">Популярные издатели</a>
+              <a href="#">Лучшие серии игр</a>
+              <a href="#">Steam Deck</a>
+              <a href="#">Bundle-наборы</a>
+            </div>
+          </div>
+          <div class="catalog-col">
+            <div class="catalog-group">
+              <h4>PlayStation <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></h4>
+              <a href="#">Игры и DLC</a>
+              <a href="#">Пополнение баланса</a>
+              <a href="#">Новые аккаунты</a>
+              <a href="#">PS Plus</a>
+              <a href="#">EA Play</a>
+            </div>
+          </div>
+          <div class="catalog-col">
+            <div class="catalog-group">
+              <h4>Xbox <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></h4>
+              <a href="#">Игры и DLC</a>
+              <a href="#">Пополнение баланса</a>
+              <a href="#">Новые аккаунты</a>
+              <a href="#">Xbox Game Pass</a>
+              <a href="#">Услуги</a>
+            </div>
+          </div>
+          <div class="catalog-col">
+            <div class="catalog-group">
+              <h4>Nintendo <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></h4>
+              <a href="#">Игры и DLC</a>
+              <a href="#">Подарочные карты</a>
+              <a href="#">Новые аккаунты</a>
+              <a href="#">NS Online</a>
+            </div>
+          </div>
+          <div class="catalog-col">
+            <div class="catalog-group">
+              <h4>Battle.net <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></h4>
+              <a href="#">World of Warcraft</a>
+              <a href="#">Подарочные карты</a>
+              <a href="#">Прямое пополнение</a>
+              <a href="#">Новые аккаунты</a>
+              <a href="#">Смена региона</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
   </div>
 </header>
 
@@ -58,12 +130,12 @@
       <li><a href="#" class="app-icon"><img src="images/telegram.png" alt="Telegram" class="app-icon-img"><span>Telegram</span></a></li>
       <li><a href="#" class="app-icon"><img src="images/roblox.png" alt="Roblox" class="app-icon-img"><span>Roblox</span></a></li>
       <li><a href="#" class="app-icon"><img src="images/brawl.png" alt="Brawl Stars" class="app-icon-img"><span>Brawl Stars</span></a></li>
-      <li><a href="#" class="app-icon"><img src="images/pubg.png" alt="PUBG Mobile" class="app-icon-img"><span>PUBG Mobile</span></a></li>
+      <li><a href="#" class="app-icon active"><img src="images/pubg.png" alt="PUBG Mobile" class="app-icon-img"><span>PUBG Mob...</span></a></li>
       <li><a href="#" class="app-icon"><img src="images/appstore.png" alt="App Store" class="app-icon-img"><span>App Store</span></a></li>
       <li><a href="#" class="app-icon"><img src="images/playstation.png" alt="PlayStation" class="app-icon-img"><span>PlayStation</span></a></li>
       <li><a href="#" class="app-icon"><img src="images/tiktok.png" alt="TikTok" class="app-icon-img"><span>TikTok</span></a></li>
       <li><a href="#" class="app-icon"><img src="images/mlegends.png" alt="Mobile Legends" class="app-icon-img"><span>Mobile Legends</span></a></li>
-      <li><a href="#" class="app-icon more"><span class="more-circle">•</span><span>ещё 841</span></a></li>
+      <li><a href="#" class="app-icon more"><span class="more-circle"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 0-4 4"/><path d="M2 12h20"/><path d="M4 12c0 3 4 5 8 5s8-2 8-5"/><circle cx="12" cy="12" r="1"/></svg></span><span>ещё 841</span></a></li>
     </ul>
 
     <hr class="divider">

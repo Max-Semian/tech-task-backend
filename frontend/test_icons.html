@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<style>
+  body { background: #f4f5f7; padding: 50px; font-family: sans-serif; }
+  .card { background: #fff; padding: 20px; border-radius: 16px; display: flex; gap: 20px; align-items: center; }
+  
+  .app-icon { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 88px; }
+  
+  /* Remove strict sizes, let them be natural, but center them */
+  .img-container { height: 86px; display: flex; align-items: center; justify-content: center; }
+  
+  .app-icon-img {
+    /* No box-shadow! No fixed width/height! */
+    display: block;
+  }
+  
+  /* Active state for PUBG */
+  .app-icon.active .app-icon-img {
+    outline: 2px solid #1f2937;
+    outline-offset: 4px;
+    border-radius: 16px; /* Outline follows border-radius in modern browsers */
+  }
+  
+  .app-icon span { font-size: 14px; font-weight: 700; }
+</style>
+<body>
+  <div class="card">
+    <div class="app-icon">
+      <div class="img-container"><img src="images/steam.png" class="app-icon-img"></div>
+      <span>Steam</span>
+    </div>
+    <div class="app-icon active">
+      <div class="img-container"><img src="images/pubg.png" class="app-icon-img"></div>
+      <span>PUBG Mobile</span>
+    </div>
+    <div class="app-icon">
+      <div class="img-container"><img src="images/roblox.png" class="app-icon-img"></div>
+      <span>Roblox</span>
+    </div>
+  </div>
+</body>
+</html>
