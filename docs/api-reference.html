@@ -1,0 +1,560 @@
+<title>API магазина цифровых товаров</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --ground:#f6f8f8; --surface:#fff; --surface-2:#eef2f2; --line:#dae3e2; --line-2:#c6d3d2;
+  --ink:#151c1d; --ink-2:#4a585a; --ink-3:#72817f;
+  --accent:#0e6f6b; --accent-soft:#dcedeb;
+  --ok:#2c7a4b; --warn:#a4701a; --bad:#a8433a; --idle:#6b7a79;
+  --get:#1f5b96; --post:#0e6f6b;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#101617; --surface:#171f20; --surface-2:#1e2829; --line:#2a3637; --line-2:#3a4849;
+    --ink:#e3ecea; --ink-2:#a2b1af; --ink-3:#7c8b89;
+    --accent:#4fb3ad; --accent-soft:#12302e;
+    --ok:#5cb37d; --warn:#d0a04e; --bad:#e0796c; --idle:#8b9a98;
+    --get:#6ea9e5; --post:#4fb3ad;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#101617; --surface:#171f20; --surface-2:#1e2829; --line:#2a3637; --line-2:#3a4849;
+  --ink:#e3ecea; --ink-2:#a2b1af; --ink-3:#7c8b89;
+  --accent:#4fb3ad; --accent-soft:#12302e;
+  --ok:#5cb37d; --warn:#d0a04e; --bad:#e0796c; --idle:#8b9a98;
+  --get:#6ea9e5; --post:#4fb3ad;
+}
+/* Блоки кода намеренно тёмные в обеих темах — «консольный» слой, свои токены */
+:root{ --code-bg:#0e1718; --code-ink:#cfdedc; --code-key:#7fc9c3; --code-str:#d9b48a; --code-num:#8fb4de; --code-lit:#c39ad6; }
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:'IBM Plex Sans',system-ui,sans-serif; font-size:15px; line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{font-family:Archivo,system-ui,sans-serif;font-weight:700;text-wrap:balance;margin:0;line-height:1.2}
+h1{font-size:clamp(28px,4vw,40px);letter-spacing:-.02em}
+h2{font-size:22px;letter-spacing:-.01em}
+h3{font-size:16px;font-family:'IBM Plex Sans',sans-serif;font-weight:600}
+p{margin:0}
+code,.mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+
+/* ---- шапка ---- */
+.masthead{border-bottom:1px solid var(--line);background:var(--surface)}
+.masthead .wrap{padding-top:44px;padding-bottom:36px;display:flex;flex-direction:column;gap:20px}
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.lede{color:var(--ink-2);max-width:64ch}
+.facts{display:flex;flex-wrap:wrap;gap:8px}
+.fact{display:flex;align-items:baseline;gap:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:6px 12px;font-size:13px}
+.fact b{font-family:'IBM Plex Mono',monospace;font-weight:500;color:var(--ink)}
+.fact span{color:var(--ink-3);font-size:12px}
+
+/* ---- гарантии ---- */
+.guarantees{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.guarantee{background:var(--surface);padding:16px 18px;display:flex;flex-direction:column;gap:6px}
+.guarantee h3{font-size:14px}
+.guarantee p{font-size:13.5px;color:var(--ink-2)}
+.guarantee code{font-size:12.5px;color:var(--accent);background:var(--accent-soft);padding:1px 5px;border-radius:4px}
+
+/* ---- диаграмма ---- */
+.lifecycle{margin-top:8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:20px}
+.lifecycle .scroller{overflow-x:auto}
+.lifecycle svg{display:block;min-width:600px;width:100%;height:auto}
+.sv-box{fill:var(--surface-2);stroke:var(--line-2)}
+.sv-label{font-family:'IBM Plex Mono',monospace;font-size:11px;fill:var(--ink)}
+.sv-note{font-family:'IBM Plex Sans',sans-serif;font-size:10.5px;fill:var(--ink-3)}
+.sv-line{stroke:var(--line-2);fill:none;stroke-width:1.5}
+.sv-head{fill:var(--line-2)}
+.sv-group{fill:none;stroke:var(--warn);stroke-dasharray:4 3;opacity:.75}
+
+/* ---- каркас ---- */
+.shell{display:grid;grid-template-columns:212px minmax(0,1fr);gap:44px;padding:40px 0 72px}
+.rail{position:sticky;top:24px;align-self:start;display:flex;flex-direction:column;gap:18px;max-height:calc(100vh - 48px);overflow-y:auto}
+.rail-group{display:flex;flex-direction:column;gap:2px}
+.rail-group>span{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-bottom:4px}
+.rail a{display:flex;gap:7px;align-items:baseline;text-decoration:none;color:var(--ink-2);font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:3px 6px;border-radius:5px;transition:background .12s,color .12s}
+.rail a:hover{background:var(--surface-2);color:var(--ink)}
+.rail a i{font-style:normal;font-size:10px;font-weight:600;letter-spacing:.03em}
+
+.sections{display:flex;flex-direction:column;gap:44px;min-width:0}
+.group-head{display:flex;flex-direction:column;gap:4px;margin-bottom:16px}
+.group-head p{color:var(--ink-2);font-size:14px}
+
+/* ---- эндпоинт ---- */
+.ep{border:1px solid var(--line);border-radius:8px;background:var(--surface);overflow:hidden;margin-bottom:14px}
+.ep-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line);background:var(--surface-2)}
+.verb{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;letter-spacing:.06em;padding:3px 8px;border-radius:4px;border:1px solid currentColor}
+.verb.get{color:var(--get)}
+.verb.post{color:var(--post)}
+.path{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:500;color:var(--ink)}
+.path em{font-style:normal;color:var(--accent)}
+.ep-head .sum{color:var(--ink-2);font-size:13.5px;margin-left:auto}
+.ep-body{padding:18px;display:flex;flex-direction:column;gap:16px}
+.ep-body>p{font-size:14px;color:var(--ink-2);max-width:70ch}
+
+.field-table{width:100%;border-collapse:collapse;font-size:13.5px}
+.field-table th{text-align:left;font-weight:600;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);padding:0 12px 7px 0;border-bottom:1px solid var(--line)}
+.field-table td{padding:8px 12px 8px 0;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink-2)}
+.field-table tr:last-child td{border-bottom:0}
+.field-table td:first-child{color:var(--ink);font-family:'IBM Plex Mono',monospace;white-space:nowrap}
+.req{color:var(--bad);font-size:11px;margin-left:5px}
+.opt{color:var(--ink-3);font-size:11px;margin-left:5px}
+
+.snip{display:flex;flex-direction:column;gap:6px}
+.snip>span{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+pre{margin:0;background:var(--code-bg);color:var(--code-ink);border-radius:6px;padding:13px 15px;overflow-x:auto;font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.55}
+.jk{color:var(--code-key)} .js{color:var(--code-str)} .jn{color:var(--code-num)} .jl{color:var(--code-lit)}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;align-items:start}
+
+.codes{display:flex;flex-wrap:wrap;gap:6px}
+.pill{font-family:'IBM Plex Mono',monospace;font-size:11.5px;padding:3px 9px;border-radius:20px;border:1px solid var(--line-2);color:var(--ink-2);background:var(--surface-2)}
+.pill.s2{color:var(--ok);border-color:currentColor}
+.pill.s4{color:var(--warn);border-color:currentColor}
+.pill.s5{color:var(--bad);border-color:currentColor}
+
+.errtable{width:100%;border-collapse:collapse;font-size:13.5px}
+.errtable th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);padding:0 14px 8px 0;border-bottom:1px solid var(--line)}
+.errtable td{padding:9px 14px 9px 0;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink-2)}
+.errtable td:first-child{font-family:'IBM Plex Mono',monospace;color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums}
+.errtable td:nth-child(2){font-family:'IBM Plex Mono',monospace;color:var(--ink)}
+
+footer{border-top:1px solid var(--line);background:var(--surface)}
+footer .wrap{padding:30px 24px 46px;display:flex;flex-direction:column;gap:14px}
+footer p{font-size:13.5px;color:var(--ink-2);max-width:70ch}
+
+@media (max-width:860px){
+  .shell{grid-template-columns:1fr;gap:24px;padding-top:26px}
+  .rail{position:static;max-height:none;flex-direction:row;flex-wrap:wrap;gap:14px;padding-bottom:18px;border-bottom:1px solid var(--line)}
+  .ep-head .sum{margin-left:0;flex-basis:100%}
+}
+</style>
+
+<header class="masthead">
+  <div class="wrap">
+    <span class="eyebrow">REST API · тестовое задание</span>
+    <h1>Магазин цифровых товаров</h1>
+    <p class="lede">Ядро магазина: заказы по SKU, вебхук оплаты, автоматическая выдача ключей через двух поставщиков-заглушек, восстановление после сбоев и сверка денег. Все примеры ниже сняты с работающего API, а не составлены вручную.</p>
+    <div class="facts">
+      <div class="fact"><span>База</span><b>http://localhost:3000</b></div>
+      <div class="fact"><span>Операций</span><b>11</b></div>
+      <div class="fact"><span>Спека</span><b>openapi.yaml</b></div>
+      <div class="fact"><span>Формат</span><b>JSON</b></div>
+      <div class="fact"><span>Авторизация</span><b>нет</b></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap" style="padding-top:34px;display:flex;flex-direction:column;gap:26px">
+  <section>
+    <h2 style="margin-bottom:14px">Что гарантирует API</h2>
+    <div class="guarantees">
+      <div class="guarantee">
+        <h3>Вебхук идемпотентен</h3>
+        <p>Повтор с тем же <code>event_id</code> возвращает <code>duplicate: true</code> и не меняет ничего. Доставка at-least-once — это норма, а не ошибка.</p>
+      </div>
+      <div class="guarantee">
+        <h3>Порядок не важен</h3>
+        <p>Событие по ещё не созданному заказу сохраняется и применяется при его создании. Ни потери, ни дубля.</p>
+      </div>
+      <div class="guarantee">
+        <h3>Таймаут ≠ отказ</h3>
+        <p>Повтор идёт с тем же <code>request_id</code>, поставщик обязан вернуть тот же код. Второй ключ не выпускается.</p>
+      </div>
+      <div class="guarantee">
+        <h3>Скидку считает сервер</h3>
+        <p>Сумма и промокод от клиента не принимаются на веру: лимит списывается атомарно, цена пересчитывается на сервере.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2 style="margin-bottom:6px">Жизненный цикл заказа</h2>
+    <p style="color:var(--ink-2);font-size:14px;margin-bottom:12px">Поле <code class="mono">status</code> в ответах <code class="mono">/orders</code> принимает одно из семи значений. Пунктиром обведены восстановимые состояния — заказ в них не падает и доводится до выдачи.</p>
+    <div class="lifecycle">
+      <div class="scroller">
+        <svg viewBox="0 0 620 214" role="img" aria-label="Схема переходов: created в paid, затем delivering и delivered. Из created ветка в payment_failed. Из delivering — восстановимые out_of_stock и delivery_failed, из которых заказ возвращается в выдачу.">
+          <defs>
+            <marker id="ah" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+              <path d="M0,0 L7,3.5 L0,7 z" class="sv-head"/>
+            </marker>
+          </defs>
+
+          <rect class="sv-box" x="20" y="30" width="110" height="40" rx="6"/>
+          <text class="sv-label" x="75" y="55" text-anchor="middle">created</text>
+          <rect class="sv-box" x="170" y="30" width="95" height="40" rx="6"/>
+          <text class="sv-label" x="217" y="55" text-anchor="middle">paid</text>
+          <rect class="sv-box" x="305" y="30" width="115" height="40" rx="6"/>
+          <text class="sv-label" x="362" y="55" text-anchor="middle">delivering</text>
+          <rect class="sv-box" x="460" y="30" width="110" height="40" rx="6" style="stroke:var(--ok)"/>
+          <text class="sv-label" x="515" y="55" text-anchor="middle" style="fill:var(--ok)">delivered</text>
+
+          <path class="sv-line" d="M130,50 H164" marker-end="url(#ah)"/>
+          <path class="sv-line" d="M265,50 H299" marker-end="url(#ah)"/>
+          <path class="sv-line" d="M420,50 H454" marker-end="url(#ah)"/>
+
+          <rect class="sv-box" x="20" y="132" width="140" height="38" rx="6" style="stroke:var(--bad)"/>
+          <text class="sv-label" x="90" y="156" text-anchor="middle" style="fill:var(--bad)">payment_failed</text>
+          <path class="sv-line" d="M75,70 V126" marker-end="url(#ah)"/>
+
+          <rect class="sv-group" x="298" y="116" width="302" height="70" rx="8"/>
+          <text class="sv-note" x="604" y="200" text-anchor="end">восстановимые — не падение</text>
+          <rect class="sv-box" x="315" y="132" width="125" height="38" rx="6" style="stroke:var(--warn)"/>
+          <text class="sv-label" x="377" y="156" text-anchor="middle" style="fill:var(--warn)">out_of_stock</text>
+          <rect class="sv-box" x="455" y="132" width="130" height="38" rx="6" style="stroke:var(--warn)"/>
+          <text class="sv-label" x="520" y="156" text-anchor="middle" style="fill:var(--warn)">delivery_failed</text>
+
+          <path class="sv-line" d="M340,70 V112" marker-end="url(#ah)"/>
+          <path class="sv-line" d="M395,110 V74" marker-end="url(#ah)"/>
+          <text class="sv-note" x="406" y="99">повторная выдача — идемпотентна</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="wrap shell">
+  <nav class="rail" aria-label="Операции">
+    <div class="rail-group">
+      <span>Витрина</span>
+      <a href="#health"><i class="verb-i" style="color:var(--get)">GET</i> /health</a>
+      <a href="#products"><i style="color:var(--get)">GET</i> /products</a>
+    </div>
+    <div class="rail-group">
+      <span>Заказы</span>
+      <a href="#create"><i style="color:var(--post)">POST</i> /orders</a>
+      <a href="#get-order"><i style="color:var(--get)">GET</i> /orders/{id}</a>
+    </div>
+    <div class="rail-group">
+      <span>Оплата</span>
+      <a href="#pay"><i style="color:var(--post)">POST</i> /orders/{id}/pay</a>
+      <a href="#webhook"><i style="color:var(--post)">POST</i> /webhook/payment</a>
+    </div>
+    <div class="rail-group">
+      <span>Промокоды</span>
+      <a href="#promo"><i style="color:var(--post)">POST</i> /promo/validate</a>
+    </div>
+    <div class="rail-group">
+      <span>Админка</span>
+      <a href="#recon"><i style="color:var(--get)">GET</i> /admin/reconciliation</a>
+      <a href="#redeliver"><i style="color:var(--post)">POST</i> …/redeliver</a>
+      <a href="#restock"><i style="color:var(--post)">POST</i> …/restock</a>
+      <a href="#ledger"><i style="color:var(--get)">GET</i> /admin/ledger</a>
+    </div>
+    <div class="rail-group">
+      <span>Справка</span>
+      <a href="#errors">Коды ошибок</a>
+    </div>
+  </nav>
+
+  <main class="sections">
+
+    <section>
+      <div class="group-head"><h2>Витрина</h2><p>Публичные данные для фронтенда. Остаток берётся из зеркала <code class="mono">stock_mirror</code>, которое обновляется в той же транзакции, что и выдача.</p></div>
+
+      <article class="ep" id="health">
+        <div class="ep-head"><span class="verb get">GET</span><span class="path">/health</span><span class="sum">Проверка живости</span></div>
+        <div class="ep-body">
+          <div class="snip"><span>Ответ 200</span><pre data-json>{ "ok": true }</pre></div>
+        </div>
+      </article>
+
+      <article class="ep" id="products">
+        <div class="ep-head"><span class="verb get">GET</span><span class="path">/products</span><span class="sum">Каталог с остатками</span></div>
+        <div class="ep-body">
+          <div class="snip"><span>Ответ 200 — массив товаров</span><pre data-json>[
+  {
+    "sku": "GIFT-PSN-1000",
+    "name": "PlayStation Store карта 1000 ₽",
+    "type": "giftcard",
+    "price": 1000,
+    "currency": "RUB",
+    "image": "assets/psn.png",
+    "available": 4
+  }
+]</pre></div>
+          <p><code class="mono">type</code> — одно из <code class="mono">topup</code>, <code class="mono">key</code>, <code class="mono">subscription</code>, <code class="mono">giftcard</code>. <code class="mono">price</code> в целых единицах валюты.</p>
+        </div>
+      </article>
+    </section>
+
+    <section>
+      <div class="group-head"><h2>Заказы</h2><p>Создание идемпотентно с двух сторон: по ключу клиента и по явному публичному <code class="mono">order_id</code>.</p></div>
+
+      <article class="ep" id="create">
+        <div class="ep-head"><span class="verb post">POST</span><span class="path">/orders</span><span class="sum">Создать заказ по SKU</span></div>
+        <div class="ep-body">
+          <table class="field-table">
+            <thead><tr><th>Поле</th><th>Описание</th></tr></thead>
+            <tbody>
+              <tr><td>sku<span class="req">обязательно</span></td><td>Товар из каталога.</td></tr>
+              <tr><td>idempotency_key<span class="opt">опц.</span></td><td>Повтор возвращает тот же заказ с кодом <code class="mono">200</code> вместо <code class="mono">201</code>. Двойной клик «Купить» не создаёт второй заказ.</td></tr>
+              <tr><td>order_id<span class="opt">опц.</span></td><td>Задать публичный id вручную. Позволяет принять вебхук по заказу, которого ещё нет.</td></tr>
+              <tr><td>promocode<span class="opt">опц.</span></td><td>Использование списывается атомарно, скидка считается на сервере.</td></tr>
+            </tbody>
+          </table>
+          <div class="two">
+            <div class="snip"><span>Запрос</span><pre data-json>{
+  "sku": "KEY-CS2-PRIME",
+  "promocode": "WELCOME10"
+}</pre></div>
+            <div class="snip"><span>Ответ 201</span><pre data-json>{
+  "order_id": "ord_mth0l6683rhat0",
+  "status": "created",
+  "amount": 1161,
+  "currency": "RUB",
+  "code": null,
+  "promo_code": "WELCOME10",
+  "promo_discount": 129,
+  "items": [
+    { "sku": "KEY-CS2-PRIME", "qty": 1,
+      "price": 1290, "currency": "RUB" }
+  ],
+  "created_at": "2026-08-31T09:06:50.623Z",
+  "paid_at": null,
+  "delivered_at": null
+}</pre></div>
+          </div>
+          <p><code class="mono">amount</code> — уже со скидкой; <code class="mono">items[].price</code> хранит цену до неё. <code class="mono">code</code> заполняется только при <code class="mono">delivered</code>.</p>
+          <div class="codes"><span class="pill s2">201 создан</span><span class="pill s2">200 повтор</span><span class="pill s4">400 sku_required</span><span class="pill s4">404 sku_not_found</span><span class="pill s4">404 promocode_not_found</span><span class="pill s4">409 idempotency_key_conflict</span><span class="pill s4">409 promocode_limit_reached</span></div>
+        </div>
+      </article>
+
+      <article class="ep" id="get-order">
+        <div class="ep-head"><span class="verb get">GET</span><span class="path">/orders/<em>{id}</em></span><span class="sum">Статус заказа</span></div>
+        <div class="ep-body">
+          <div class="snip"><span>Ответ 200 — заказ доведён до выдачи</span><pre data-json>{
+  "order_id": "ord_mth0l6683rhat0",
+  "status": "delivered",
+  "amount": 1161,
+  "code": "RSTK-KEY-CS2-PRIME-MTH0LMS287XS",
+  "promo_code": "WELCOME10",
+  "promo_discount": 129,
+  "paid_at": "2026-08-31T09:06:50.709Z",
+  "delivered_at": "2026-08-31T09:07:15.066Z"
+}</pre></div>
+          <div class="codes"><span class="pill s2">200</span><span class="pill s4">404 order_not_found</span></div>
+        </div>
+      </article>
+    </section>
+
+    <section>
+      <div class="group-head"><h2>Оплата</h2><p>Реального эквайринга нет. Оба маршрута ведут в один обработчик, поэтому кнопка «оплатить» из интерфейса даёт ровно те же гарантии, что и вебхук от платёжной системы.</p></div>
+
+      <article class="ep" id="pay">
+        <div class="ep-head"><span class="verb post">POST</span><span class="path">/orders/<em>{id}</em>/pay</span><span class="sum">Эмуляция оплаты</span></div>
+        <div class="ep-body">
+          <p>Генерирует <code class="mono">event_id</code> и применяет вебхук по контракту. <code class="mono">status</code> — <code class="mono">paid</code> или <code class="mono">failed</code>; неуспех переводит заказ в финальный <code class="mono">payment_failed</code> без выдачи и без записи в журнал денег.</p>
+          <div class="two">
+            <div class="snip"><span>Запрос</span><pre data-json>{ "status": "paid" }</pre></div>
+            <div class="snip"><span>Ответ 200</span><pre data-json>{
+  "accepted": true,
+  "order_id": "ord_mth0l6683rhat0",
+  "status": "paid",
+  "duplicate": false,
+  "applied": true
+}</pre></div>
+          </div>
+          <div class="codes"><span class="pill s2">200</span><span class="pill s4">400 invalid_pay_status</span><span class="pill s4">404 order_not_found</span></div>
+        </div>
+      </article>
+
+      <article class="ep" id="webhook">
+        <div class="ep-head"><span class="verb post">POST</span><span class="path">/webhook/payment</span><span class="sum">Вебхук платёжной системы</span></div>
+        <div class="ep-body">
+          <p>Отвечает быстро и всегда <code class="mono">200</code> для принятых событий — <code class="mono">5xx</code> заставил бы платёжку повторять доставку. Пятьдесят параллельных событий по одному заказу дают ровно один факт выдачи и одну запись в журнале.</p>
+          <table class="field-table">
+            <thead><tr><th>Поле</th><th>Описание</th></tr></thead>
+            <tbody>
+              <tr><td>event_id<span class="req">обязательно</span></td><td>Уникален для события; повтор приходит с тем же значением.</td></tr>
+              <tr><td>order_id<span class="req">обязательно</span></td><td>Публичный id. Заказа может ещё не существовать.</td></tr>
+              <tr><td>status<span class="req">обязательно</span></td><td><code class="mono">paid</code> или <code class="mono">failed</code>.</td></tr>
+              <tr><td>amount, currency, created_at<span class="opt">опц.</span></td><td>Сумма, валюта и бизнес-время события.</td></tr>
+            </tbody>
+          </table>
+          <div class="two">
+            <div class="snip"><span>Первое событие</span><pre data-json>{
+  "accepted": true,
+  "duplicate": false,
+  "applied": true
+}</pre></div>
+            <div class="snip"><span>Повтор с тем же event_id</span><pre data-json>{
+  "accepted": true,
+  "duplicate": true,
+  "applied": false
+}</pre></div>
+          </div>
+          <div class="codes"><span class="pill s2">200</span><span class="pill s4">400 invalid_webhook</span></div>
+        </div>
+      </article>
+    </section>
+
+    <section>
+      <div class="group-head"><h2>Промокоды</h2><p>Лимит соблюдается под параллельными запросами: код с <code class="mono">max_uses: 3</code> под пятьюдесятью одновременными заказами применяется не более трёх раз.</p></div>
+
+      <article class="ep" id="promo">
+        <div class="ep-head"><span class="verb post">POST</span><span class="path">/promo/validate</span><span class="sum">Проверить без списания</span></div>
+        <div class="ep-body">
+          <p>Только предпросмотр скидки для интерфейса — использование списывается при создании заказа, а не здесь.</p>
+          <div class="two">
+            <div class="snip"><span>Запрос</span><pre data-json>{ "code": "WELCOME10", "amount": 1290 }</pre></div>
+            <div class="snip"><span>Ответ 200</span><pre data-json>{
+  "valid": true,
+  "code": "WELCOME10",
+  "type": "percent",
+  "value": 10,
+  "discount": 129,
+  "final_amount": 1161,
+  "used": 0,
+  "max_uses": 100
+}</pre></div>
+          </div>
+          <div class="snip"><span>Код не подошёл — статус несёт причину, тело её называет</span><pre data-json>{ "valid": false, "reason": "promocode_not_found" }</pre></div>
+          <div class="codes"><span class="pill s2">200 valid</span><span class="pill s4">400 invalid_amount</span><span class="pill s4">404 promocode_not_found</span><span class="pill s4">409 promocode_limit_reached</span></div>
+        </div>
+      </article>
+    </section>
+
+    <section>
+      <div class="group-head"><h2>Админка</h2><p>Без авторизации — по условию задания она не проверяется. Здесь живут сверка и ручное восстановление заказов, застрявших в восстановимых состояниях.</p></div>
+
+      <article class="ep" id="recon">
+        <div class="ep-head"><span class="verb get">GET</span><span class="path">/admin/reconciliation</span><span class="sum">Сверка и баланс</span></div>
+        <div class="ep-body">
+          <p>Ищет расхождения в обе стороны: «оплачен, но не выдан» и «выдан, но не оплачен». <code class="mono">balance.ok</code> означает, что журнал денег сходится с суммой оплаченных заказов.</p>
+          <div class="snip"><span>Ответ 200 — один заказ ждёт пополнения остатка</span><pre data-json>{
+  "paid_not_delivered": [
+    {
+      "order_id": "ord_mth0l6683rhat0",
+      "status": "out_of_stock",
+      "amount": "1161",
+      "currency": "RUB",
+      "created_at": "2026-08-31T09:06:50.623Z",
+      "updated_at": "2026-08-31T09:06:50.810Z"
+    }
+  ],
+  "delivered_not_paid": [],
+  "balance": {
+    "ledger_total": 1161,
+    "paid_orders_total": 1161,
+    "ok": true
+  }
+}</pre></div>
+          <p>Суммы в списках приходят строками — это <code class="mono">BIGINT</code> из Postgres, который драйвер не приводит к числу, чтобы не терять точность.</p>
+        </div>
+      </article>
+
+      <article class="ep" id="redeliver">
+        <div class="ep-head"><span class="verb post">POST</span><span class="path">/admin/orders/<em>{id}</em>/redeliver</span><span class="sum">Повторная выдача</span></div>
+        <div class="ep-body">
+          <p>Безопасна для <code class="mono">out_of_stock</code> и <code class="mono">delivery_failed</code>. Для уже выданного заказа возвращает <code class="mono">changed: false</code> и второго ключа не выпускает — повторный вызов ничего не ломает.</p>
+          <div class="two">
+            <div class="snip"><span>Поставлено в очередь</span><pre data-json>{
+  "order_id": "ord_mth0l6683rhat0",
+  "status": "out_of_stock",
+  "changed": true
+}</pre></div>
+            <div class="snip"><span>Уже выдан — ничего не делает</span><pre data-json>{
+  "order_id": "ord_mth0l6683rhat0",
+  "status": "delivered",
+  "changed": false
+}</pre></div>
+          </div>
+          <div class="codes"><span class="pill s2">200</span><span class="pill s4">404 order_not_found</span><span class="pill s4">409 cannot_redeliver_status_…</span></div>
+        </div>
+      </article>
+
+      <article class="ep" id="restock">
+        <div class="ep-head"><span class="verb post">POST</span><span class="path">/admin/stock/<em>{sku}</em>/restock</span><span class="sum">Пополнить остаток</span></div>
+        <div class="ep-body">
+          <p>Добавляет коды обоим поставщикам — разными половинами, чтобы один код физически не мог оказаться в двух пулах, — и увеличивает зеркало остатков. <code class="mono">count</code> по умолчанию 1, максимум 1000.</p>
+          <div class="two">
+            <div class="snip"><span>Запрос</span><pre data-json>{ "count": 10 }</pre></div>
+            <div class="snip"><span>Ответ 200</span><pre data-json>{
+  "sku": "KEY-CS2-PRIME",
+  "added": 10,
+  "suppliers": { "a": true, "b": true }
+}</pre></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="ep" id="ledger">
+        <div class="ep-head"><span class="verb get">GET</span><span class="path">/admin/ledger</span><span class="sum">Журнал денежных движений</span></div>
+        <div class="ep-body">
+          <p>Ровно одна запись на заказ: уникальность по паре <code class="mono">order_id</code> + <code class="mono">entry_type</code> не даёт задвоить платёж даже при шторме вебхуков.</p>
+          <div class="snip"><span>Ответ 200</span><pre data-json>{
+  "entries": [
+    {
+      "id": "2",
+      "order_id": "ord_mth0m14oy2jza0",
+      "entry_type": "payment",
+      "amount": "1990",
+      "currency": "RUB",
+      "event_key": "evt_doc_1788167250",
+      "created_at": "2026-08-31T09:07:30.805Z"
+    }
+  ],
+  "total": 1990
+}</pre></div>
+        </div>
+      </article>
+    </section>
+
+    <section id="errors">
+      <div class="group-head"><h2>Коды ошибок</h2><p>Все ошибки приходят одинаково: <code class="mono">{ "error": "…" }</code>. Исключение — <code class="mono">/promo/validate</code>, который отдаёт <code class="mono">{ "valid": false, "reason": "…" }</code>, потому что невалидный код для интерфейса не сбой, а обычный ответ.</p></div>
+      <div class="ep"><div class="ep-body">
+      <table class="errtable">
+        <thead><tr><th>Статус</th><th>Код</th><th>Когда</th></tr></thead>
+        <tbody>
+          <tr><td>400</td><td>sku_required</td><td>В теле <code class="mono">/orders</code> нет строки <code class="mono">sku</code>.</td></tr>
+          <tr><td>400</td><td>invalid_webhook</td><td>Нет <code class="mono">event_id</code>, <code class="mono">order_id</code> или <code class="mono">status</code> не <code class="mono">paid</code>/<code class="mono">failed</code>.</td></tr>
+          <tr><td>400</td><td>invalid_pay_status</td><td>В <code class="mono">/pay</code> передан статус, отличный от <code class="mono">paid</code> и <code class="mono">failed</code>.</td></tr>
+          <tr><td>400</td><td>code_and_amount_required</td><td>В <code class="mono">/promo/validate</code> не хватает кода или суммы.</td></tr>
+          <tr><td>400</td><td>invalid_amount</td><td>Сумма не число или отрицательная.</td></tr>
+          <tr><td>404</td><td>order_not_found</td><td>Заказа с таким <code class="mono">order_id</code> нет.</td></tr>
+          <tr><td>404</td><td>sku_not_found</td><td>Товара с таким SKU нет в каталоге.</td></tr>
+          <tr><td>404</td><td>promocode_not_found</td><td>Промокод не существует.</td></tr>
+          <tr><td>409</td><td>idempotency_key_conflict</td><td>Ключ идемпотентности уже занят другим заказом.</td></tr>
+          <tr><td>409</td><td>promocode_limit_reached</td><td>Лимит использований промокода исчерпан.</td></tr>
+          <tr><td>409</td><td>cannot_redeliver_status_…</td><td>Заказ в статусе, из которого повторная выдача небезопасна.</td></tr>
+          <tr><td>500</td><td>internal_error</td><td>Необработанное исключение; попадает в структурированный лог со стеком.</td></tr>
+        </tbody>
+      </table>
+      </div></div>
+    </section>
+
+  </main>
+</div>
+
+<footer>
+  <div class="wrap">
+    <h3>Как поднять</h3>
+    <pre data-plain>cd backend &amp;&amp; docker compose up -d --build
+curl http://localhost:3000/health</pre>
+    <p>Витрина поднимется на <code class="mono">:8080</code>, API — на <code class="mono">:3000</code>. Машиночитаемая спека лежит в репозитории: <code class="mono">backend/openapi.yaml</code> (OpenAPI 3.0.3, 11 операций). Проверки надёжности воспроизводятся командами <code class="mono">npm test</code>, <code class="mono">npm run race-check</code> и <code class="mono">npm run supplier-failure-demo</code>.</p>
+  </div>
+</footer>
+
+<script>
+// Мини-подсветка JSON: ключи, строки, числа, литералы
+document.querySelectorAll('pre[data-json]').forEach(function (el) {
+  var src = el.textContent;
+  el.innerHTML = src
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"([^"\\]*(?:\\.[^"\\]*)*)"(\s*:)?/g, function (m, body, colon) {
+      return colon
+        ? '<span class="jk">"' + body + '"</span>' + colon
+        : '<span class="js">"' + body + '"</span>';
+    })
+    .replace(/\b(true|false|null)\b/g, '<span class="jl">$1</span>')
+    .replace(/(:\s*)(-?\d+(?:\.\d+)?)/g, '$1<span class="jn">$2</span>');
+});
+</script>

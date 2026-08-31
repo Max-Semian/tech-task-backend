@@ -205,6 +205,11 @@ npm run supplier-failure-demo
 
 ## API
 
+Полный справочник с примерами: [документация API](https://claude.ai/code/artifact/0bb85bb0-d2e1-4b98-9ea8-33d157b91256).
+Машиночитаемая спека — [`openapi.yaml`](openapi.yaml) (OpenAPI 3.0.3, 11 операций);
+открывается в Swagger Editor, Redoc, Postman или Insomnia без правок.
+
+
 ### POST `/orders` — создать заказ по SKU (Этап 1)
 ```json
 { "sku": "STEAM-TOPUP-500", "idempotency_key": "optional", "order_id": "optional" }
