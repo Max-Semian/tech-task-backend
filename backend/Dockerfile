@@ -14,6 +14,7 @@ COPY scripts ./scripts
 ENV NODE_ENV=production
 EXPOSE 3000
 
-# По умолчанию API + фоновые воркеры (выдача/recovery).
-# Поставщики supplier-a/b переопределяют CMD в docker-compose.
-CMD ["node", "src/index.js"]
+# Один образ на обе роли. docker-compose переопределяет command напрямую,
+# а Railway роль выбирает переменной ROLE: там на сервис можно задать env,
+# но не отдельную стартовую команду.
+CMD ["sh", "-c", "if [ \"$ROLE\" = supplier ]; then exec node src/suppliers/server.js; else exec node src/index.js; fi"]

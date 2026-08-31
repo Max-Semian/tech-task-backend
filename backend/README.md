@@ -205,7 +205,7 @@ npm run supplier-failure-demo
 
 ## API
 
-Полный справочник с примерами: [документация API](https://claude.ai/code/artifact/0bb85bb0-d2e1-4b98-9ea8-33d157b91256).
+Полный справочник с примерами: [документация API](https://t-shell.uk/api-docs).
 Машиночитаемая спека — [`openapi.yaml`](openapi.yaml) (OpenAPI 3.0.3, 11 операций);
 открывается в Swagger Editor, Redoc, Postman или Insomnia без правок.
 

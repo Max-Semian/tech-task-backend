@@ -1,0 +1,29 @@
+server {
+    listen       ${PORT};
+    listen       [::]:${PORT};
+    server_name  _;
+
+    root  /usr/share/nginx/html;
+    index index.html;
+    charset utf-8;
+    server_tokens off;
+
+    # Витрина — демо тестового задания, в поиске ей делать нечего.
+    add_header X-Robots-Tag "noindex, nofollow" always;
+
+    location = /healthz {
+        access_log off;
+        default_type text/plain;
+        return 200 "ok\n";
+    }
+
+    # config.js собирается на старте, кэшировать его нельзя
+    location = /config.js {
+        expires -1;
+        add_header Cache-Control "no-store" always;
+    }
+
+    location / {
+        try_files $uri $uri.html $uri/ =404;
+    }
+}
