@@ -34,8 +34,10 @@ adminRouter.post('/stock/:sku/restock', async (req, res, next) => {
       { length: count },
       () => `RSTK-${sku}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`.toUpperCase(),
     );
-    const aOk = await restockSupplier(config.supplierA.url, sku, codes);
-    const bOk = await restockSupplier(config.supplierB.url, sku, codes);
+    // делим коды между поставщиками, чтобы один код не оказался в двух пулах
+    const mid = Math.ceil(codes.length / 2);
+    const aOk = await restockSupplier(config.supplierA.url, sku, codes.slice(0, mid));
+    const bOk = await restockSupplier(config.supplierB.url, sku, codes.slice(mid));
     await pool.query(
       `INSERT INTO stock_mirror (sku, available)
        VALUES ($1,$2)
