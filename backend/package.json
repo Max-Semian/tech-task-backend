@@ -1,0 +1,28 @@
+{
+  "name": "tech-task-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Ядро магазина цифровых товаров — тестовое задание (бэкенд)",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "seed": "node scripts/seed.js",
+    "seed-bench": "node scripts/seed-bench.js",
+    "test": "node --test test/",
+    "test:race": "node --test test/race.test.js",
+    "race-check": "node scripts/race-check.js",
+    "supplier-failure-demo": "node scripts/supplier-failure-demo.js",
+    "reconcile": "node scripts/reconcile.js",
+    "supplier:a": "SUPPLIER_NAME=A PORT=4100 node src/suppliers/server.js",
+    "supplier:b": "SUPPLIER_NAME=B PORT=4200 node src/suppliers/server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "pg": "^8.12.0",
+    "pino": "^9.4.0"
+  }
+}
