@@ -1,12 +1,14 @@
 import { createApp } from './app.js';
 import { config } from './config.js';
 import { pool, initSchema, waitForDb } from './db.js';
+import { seedIfEmpty } from './services/seedService.js';
 import { logger } from './logger.js';
 import { startBackgroundWorkers, stopBackgroundWorkers } from './worker.js';
 
 async function main() {
   await waitForDb(pool);
   await initSchema(pool);
+  await seedIfEmpty(pool); // авто-сид каталога при чистой БД (Docker: одна команда up)
 
   const app = createApp();
   const server = app.listen(config.port, () => {

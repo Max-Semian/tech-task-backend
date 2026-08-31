@@ -12,9 +12,70 @@ services:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U app -d shop"]
-      interval: 2s
+      interval: 3s
       timeout: 3s
       retries: 30
+
+  app:
+    build: .
+    container_name: tz-backend-api
+    environment:
+      DATABASE_URL: postgres://app:app@db:5432/shop
+      SUPPLIER_A_URL: http://supplier-a:4100
+      SUPPLIER_B_URL: http://supplier-b:4200
+      PORT: "3000"
+      WORKER_POLL_INTERVAL_MS: "200"
+      RECOVERY_INTERVAL_MS: "10000"
+      LOG_LEVEL: info
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      supplier-a:
+        condition: service_started
+      supplier-b:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/health"]
+      interval: 5s
+      timeout: 3s
+      start_period: 15s
+      retries: 10
+
+  supplier-a:
+    build: .
+    container_name: tz-backend-supplier-a
+    command: ["node", "src/suppliers/server.js"]
+    environment:
+      SUPPLIER_NAME: A
+      PORT: "4100"
+      ERROR_RATE: "0.2"
+      TIMEOUT_RATE: "0.1"
+      TIMEOUT_MS: "3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4100/stock"]
+      interval: 5s
+      timeout: 3s
+      start_period: 5s
+      retries: 10
+
+  supplier-b:
+    build: .
+    container_name: tz-backend-supplier-b
+    command: ["node", "src/suppliers/server.js"]
+    environment:
+      SUPPLIER_NAME: B
+      PORT: "4200"
+      ERROR_RATE: "0.3"
+      TIMEOUT_RATE: "0.1"
+      TIMEOUT_MS: "3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4200/stock"]
+      interval: 5s
+      timeout: 3s
+      start_period: 5s
+      retries: 10
 
 volumes:
   pgdata:
