@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Статус заказа — GameMarket</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="catalog-btn" href="index.html" style="text-decoration:none">← На витрину</a>
+    <div class="search-bar"><input type="text" placeholder="GameMarket" disabled></div>
+  </div>
+</header>
+
+<main>
+  <div class="order-wrap">
+    <div class="order-card">
+      <h1>Статус заказа</h1>
+      <div class="order-meta" id="orderMeta">Загрузка…</div>
+      <div class="order-status" id="orderStatus"></div>
+      <div class="spinner" id="spinner"></div>
+      <div id="keyBlock" hidden>
+        <div class="key-display" id="keyValue"></div>
+        <p>Ключ активируйте на официальном сайте.</p>
+      </div>
+      <p class="order-meta" id="errorText" hidden></p>
+    </div>
+  </div>
+</main>
+
+<script>
+'use strict';
+const API = window.API_BASE || 'http://localhost:3000';
+const orderId = new URLSearchParams(location.search).get('id');
+const STATUS_LABEL = {
+  created: 'Создан, ожидает оплаты',
+  paid: 'Оплачен, выдаём ключ…',
+  delivering: 'Идёт выдача ключа…',
+  delivered: 'Выдан',
+  payment_failed: 'Оплата не прошла',
+  out_of_stock: 'Восстановимый: остаток закончился, ключ появится после пополнения',
+  delivery_failed: 'Восстановимый: ошибка доставки, будет повторена',
+};
+
+async function refresh() {
+  const meta = document.getElementById('orderMeta');
+  const statusEl = document.getElementById('orderStatus');
+  const err = document.getElementById('errorText');
+  if (!orderId) { err.hidden = false; err.textContent = 'Не указан id заказа (?id=ord_...)'; return; }
+  let res;
+  try { res = await fetch(API + '/orders/' + orderId); }
+  catch (e) { err.hidden = false; err.textContent = 'Сеть недоступна: ' + e.message; return; }
+  if (res.status === 404) { err.hidden = false; err.textContent = 'Заказ не найден'; return; }
+  const o = await res.json();
+  meta.innerHTML = 'Заказ <b>' + o.order_id + '</b> · ' + o.amount + ' ' + o.currency +
+    (o.promo_code ? ' · промокод <b>' + o.promo_code + '</b> (−' + o.promo_discount + ')' : '');
+  statusEl.textContent = STATUS_LABEL[o.status] || o.status;
+
+  const keyBlock = document.getElementById('keyBlock');
+  const spinner = document.getElementById('spinner');
+  if (o.status === 'delivered') {
+    spinner.hidden = true;
+    document.getElementById('keyValue').textContent = o.code;
+    keyBlock.hidden = false;
+    clearInterval(timer);
+  } else if (o.status === 'payment_failed') {
+    spinner.hidden = true;
+  } else {
+    spinner.hidden = false;
+    keyBlock.hidden = true;
+  }
+}
+let timer = setInterval(refresh, 1000);
+refresh();
+</script>
+</body>
+</html>

@@ -3,396 +3,141 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Home V3 — маркетплейс цифровых товаров</title>
+<title>GameMarket — маркетплейс цифровых товаров</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;0,800;1,900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-<!-- ===== Header ===== -->
 <header class="site-header">
   <div class="container header-inner">
-    <button class="catalog-btn">
-      <img src="https://www.figma.com/api/mcp/asset/285f7da7-48c7-47cf-99ef-c64523cb9e54.svg" alt="" class="icon-20">
-      <span>Каталог</span>
-    </button>
-
-    <div class="search-bar">
-      <input type="text" placeholder="Игра, приложение или услуга...">
-      <button class="search-fav-btn" aria-label="Избранное">
-        <img src="https://www.figma.com/api/mcp/asset/cc4abe00-ae1d-4208-bf07-aa3abf6f66ef.svg" alt="" class="icon-14">
+    <div class="catalog-wrap">
+      <button class="catalog-btn" id="catalogBtn" aria-haspopup="true" aria-expanded="false">
+        <span class="burger-icon"><span></span><span></span><span></span></span>
+        <span>Каталог</span>
       </button>
-      <button class="search-submit-btn" aria-label="Поиск">
-        <img src="https://www.figma.com/api/mcp/asset/0b383b0a-cb56-482c-ac3c-2195d611423b.svg" alt="" class="icon-20">
-      </button>
+      <nav class="catalog-menu" id="catalogMenu" hidden>
+        <a href="#" data-cat="topup">Пополнение Steam</a>
+        <a href="#" data-cat="key">Ключи игр</a>
+        <a href="#" data-cat="subscription">Подписки</a>
+        <a href="#" data-cat="giftcard">Gift-карты</a>
+        <a href="#" data-cat="all">Все товары</a>
+      </nav>
     </div>
-
-    <button class="profile-btn" aria-label="Профиль">
-      <img src="https://www.figma.com/api/mcp/asset/193fdef3-43ef-4c20-87ef-6e1b87531724.svg" alt="">
-    </button>
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Игра, приложение или услуга...">
+      <button class="search-submit-btn" aria-label="Поиск">🔍</button>
+    </div>
+    <a class="profile-btn" href="admin.html" title="Админка">⚙️</a>
   </div>
 </header>
 
 <main class="container">
 
-  <!-- ===== Hero carousel ===== -->
-  <section class="hero">
-    <img class="hero-img" src="https://www.figma.com/api/mcp/asset/a887fe2c-fa20-4e77-8fe0-354077946a90.svg" alt="Промо баннер">
-    <div class="hero-dots">
-      <span class="dot active"></span>
-      <span class="dot"></span>
-      <span class="dot"></span>
-      <span class="dot"></span>
-      <span class="dot"></span>
-      <span class="dot"></span>
+  <section class="hero" id="hero">
+    <div class="hero-track" id="heroTrack">
+      <div class="hero-slide" style="background:linear-gradient(120deg,#7c3aed,#2563eb)"><div class="hero-caption"><h2>Ключи и пополнения</h2><p>Мгновенная доставка 24/7</p></div></div>
+      <div class="hero-slide" style="background:linear-gradient(120deg,#0ea5e9,#6366f1)"><div class="hero-caption"><h2>Steam пополнение</h2><p>Без логина и пароля</p></div></div>
+      <div class="hero-slide" style="background:linear-gradient(120deg,#10b981,#0d9488)"><div class="hero-caption"><h2>Подписки</h2><p>Discord, YouTube, Spotify</p></div></div>
+      <div class="hero-slide" style="background:linear-gradient(120deg,#f59e0b,#ef4444)"><div class="hero-caption"><h2>Gift-карты</h2><p>PSN, Xbox, Roblox</p></div></div>
+      <div class="hero-slide" style="background:linear-gradient(120deg,#8b5cf6,#d946ef)"><div class="hero-caption"><h2>Выгодные цены</h2><p>Промокоды до 50%</p></div></div>
+      <div class="hero-slide" style="background:linear-gradient(120deg,#0f172a,#334155)"><div class="hero-caption"><h2>Надёжная гарантия</h2><p>Товар выдаётся мгновенно</p></div></div>
     </div>
+    <div class="hero-dots" id="heroDots"></div>
     <div class="hero-arrows">
-      <button aria-label="Предыдущий слайд">
-        <img src="https://www.figma.com/api/mcp/asset/2f3db58b-f446-44ad-8241-77a4e5df73c8.svg" alt="" class="icon-22 flip-v">
-      </button>
-      <button aria-label="Следующий слайд">
-        <img src="https://www.figma.com/api/mcp/asset/c0ba6819-41b5-4f05-9118-0304895eee96.svg" alt="" class="icon-22 flip-v">
-      </button>
+      <button id="heroPrev" aria-label="Предыдущий слайд">←</button>
+      <button id="heroNext" aria-label="Следующий слайд">→</button>
     </div>
   </section>
 
-  <!-- ===== Apps + Payment block ===== -->
   <section class="app-payment-card">
     <ul class="app-icons">
-      <li><a href="#" class="app-icon"><img src="https://www.figma.com/api/mcp/asset/6cdc928d-2469-4488-8908-411d0e03a0a4.png" alt="Steam" class="app-icon-img steam"><span>Steam</span></a></li>
-      <li><a href="#" class="app-icon"><img src="https://www.figma.com/api/mcp/asset/af144819-6f82-409b-a7b0-d6708ed3bb94.png" alt="Telegram" class="app-icon-img telegram"><span>Telegram</span></a></li>
-      <li><a href="#" class="app-icon"><img src="https://www.figma.com/api/mcp/asset/7972e94c-9296-464d-af69-bc07c1294d45.png" alt="Roblox" class="app-icon-img roblox"><span>Roblox</span></a></li>
-      <li><a href="#" class="app-icon"><img src="https://www.figma.com/api/mcp/asset/179ce336-f044-489e-9cf5-846e0b0fcac7.png" alt="Brawl Stars" class="app-icon-img brawl"><span>Brawl Stars</span></a></li>
-      <li><a href="#" class="app-icon"><img src="https://www.figma.com/api/mcp/asset/33c7ef64-a5f2-4d9d-96fa-2d9d070a9333.png" alt="PUBG Mobile" class="app-icon-img pubg"><span>PUBG Mob...</span></a></li>
-      <li><a href="#" class="app-icon"><img src="https://www.figma.com/api/mcp/asset/7b6e2381-a4e7-4cbf-b5bb-a93e9528bc5b.png" alt="App Store" class="app-icon-img appstore"><span>App Store</span></a></li>
-      <li><a href="#" class="app-icon"><img src="https://www.figma.com/api/mcp/asset/c02eab0d-2583-477e-a55e-3c9a3390ed54.png" alt="ChatGPT" class="app-icon-img chatgpt"><span>ChatGPT</span></a></li>
-      <li><a href="#" class="app-icon"><img src="https://www.figma.com/api/mcp/asset/681a5977-1cd0-4d7b-a8ed-ee92deebf680.png" alt="PlayStation" class="app-icon-img playstation"><span>PlayStation</span></a></li>
-      <li><a href="#" class="app-icon"><img src="https://www.figma.com/api/mcp/asset/67b70935-de12-448d-a327-47e7712eca75.png" alt="TikTok" class="app-icon-img tiktok"><span>TikTok</span></a></li>
-      <li><a href="#" class="app-icon"><img src="https://www.figma.com/api/mcp/asset/67dde5a0-83c8-4012-9711-ebb924fc0f79.png" alt="Mobile Legends" class="app-icon-img mlegends"><span>Mobile Leg..</span></a></li>
-      <li><a href="#" class="app-icon more">
-        <span class="more-circle"><img src="https://www.figma.com/api/mcp/asset/92384cd9-aafe-43a5-82c4-bc8046e17f34.svg" alt=""></span>
-        <span>еще 841</span>
-      </a></li>
+      <li><a href="#" class="app-icon"><img src="images/steam.png" alt="Steam" class="app-icon-img"><span>Steam</span></a></li>
+      <li><a href="#" class="app-icon"><img src="images/telegram.png" alt="Telegram" class="app-icon-img"><span>Telegram</span></a></li>
+      <li><a href="#" class="app-icon"><img src="images/roblox.png" alt="Roblox" class="app-icon-img"><span>Roblox</span></a></li>
+      <li><a href="#" class="app-icon"><img src="images/brawl.png" alt="Brawl Stars" class="app-icon-img"><span>Brawl Stars</span></a></li>
+      <li><a href="#" class="app-icon"><img src="images/pubg.png" alt="PUBG Mobile" class="app-icon-img"><span>PUBG Mobile</span></a></li>
+      <li><a href="#" class="app-icon"><img src="images/appstore.png" alt="App Store" class="app-icon-img"><span>App Store</span></a></li>
+      <li><a href="#" class="app-icon"><img src="images/playstation.png" alt="PlayStation" class="app-icon-img"><span>PlayStation</span></a></li>
+      <li><a href="#" class="app-icon"><img src="images/tiktok.png" alt="TikTok" class="app-icon-img"><span>TikTok</span></a></li>
+      <li><a href="#" class="app-icon"><img src="images/mlegends.png" alt="Mobile Legends" class="app-icon-img"><span>Mobile Legends</span></a></li>
+      <li><a href="#" class="app-icon more"><span class="more-circle">•</span><span>ещё 841</span></a></li>
     </ul>
 
     <hr class="divider">
 
-    <form class="payment-row">
+    <div class="payment-row">
       <div class="selected-app">
-        <img src="https://www.figma.com/api/mcp/asset/6cdc928d-2469-4488-8908-411d0e03a0a4.png" alt="Steam" class="app-icon-img steam">
+        <img src="images/steam.png" alt="Steam" class="app-icon-img">
         <div>
           <div class="selected-app-title">
             <span>Пополнение Steam</span>
             <span class="badge">5%</span>
           </div>
-          <button type="button" class="promo-btn">
-            Ввести промокод
-            <img src="https://www.figma.com/api/mcp/asset/55e04bdd-3f1b-4d31-85a0-12dc2664985c.svg" alt="" class="icon-12">
-          </button>
+          <button type="button" class="promo-btn" id="steamPromoBtn">Ввести промокод</button>
         </div>
       </div>
-
       <label class="input-field login-field">
-        <img src="https://www.figma.com/api/mcp/asset/eddef4ba-f8d8-4179-9fc0-23ca35dac93e.svg" alt="" class="icon-20">
         <input type="text" placeholder="Логин Steam">
         <span class="info-dot">i</span>
       </label>
-
       <div class="input-field amount-field">
-        <img src="https://www.figma.com/api/mcp/asset/7ea2a0d8-4b7f-4f81-b11f-05ee8dcfbcbb.svg" alt="" class="icon-20">
         <div>
           <div class="amount-label">Сумма</div>
-          <div class="amount-value">500₽</div>
+          <div class="amount-value" id="steamAmount">500₽</div>
         </div>
-        <div class="currency-toggle">
+        <div class="currency-toggle" id="currencyToggle">
           <button type="button" class="active">$</button>
           <button type="button">₸</button>
           <button type="button">₽</button>
         </div>
       </div>
-
-      <button type="submit" class="pay-btn">Оплатить 500$</button>
-    </form>
+      <button type="button" class="pay-btn" id="steamPayBtn">Оплатить 500₽</button>
+    </div>
   </section>
 
-  <!-- ===== Popular products ===== -->
+  <!-- ===== Products ===== -->
   <section class="products-section">
     <div class="section-header">
       <h2>Популярные товары</h2>
-      <nav class="category-nav">
-        <button class="category-btn active">
-          <img src="https://www.figma.com/api/mcp/asset/27a09c83-afac-4dcc-93de-99bdb8dab2ac.svg" alt="" class="icon-14">Донат
-        </button>
-        <button class="category-btn">
-          <img src="https://www.figma.com/api/mcp/asset/e84ffbb5-6933-4478-80b9-6c0511ea42d3.svg" alt="" class="icon-14">Подписки
-        </button>
-        <button class="category-btn">
-          <img src="https://www.figma.com/api/mcp/asset/5e9587c5-805b-4a0f-8759-8dc06ee727bc.svg" alt="" class="icon-14">Предметы
-        </button>
-        <button class="category-btn">
-          <img src="https://www.figma.com/api/mcp/asset/767ab190-a4d9-4c3d-a0bb-752a1de04018.svg" alt="" class="icon-14">Аккаунты
-        </button>
-        <button class="category-btn">
-          <img src="https://www.figma.com/api/mcp/asset/cb476f5b-5ae4-4024-96e1-21c4fd862f83.svg" alt="" class="icon-14">Ключи
-        </button>
-        <button class="category-btn">
-          <img src="https://www.figma.com/api/mcp/asset/570165b1-7611-4983-acb1-25932beaf8e1.svg" alt="" class="icon-14">Игровая валюта
-        </button>
-        <button class="category-btn">
-          <img src="https://www.figma.com/api/mcp/asset/0f91c46b-3df8-466c-bce0-caa23ad81e6b.svg" alt="" class="icon-14">Другое
-        </button>
-      </nav>
     </div>
-
-    <div class="product-grid">
-      <!-- 5x repeated product card -->
-      <article class="product-card">
-        <img src="https://www.figma.com/api/mcp/asset/87833d4d-b6b5-4872-a3df-364ab7ad3aab.png" alt="DOOM 2016" class="product-img">
-        <div class="product-body">
-          <h3>💥 DOOM 2016 💀 STEAM KEY 🔑 РФ+СНГ</h3>
-          <p class="price"><span class="new">990 ₽</span><span class="old">1 990 ₽</span></p>
-          <button class="buy-btn">Купить</button>
-        </div>
-      </article>
-      <article class="product-card">
-        <img src="https://www.figma.com/api/mcp/asset/87833d4d-b6b5-4872-a3df-364ab7ad3aab.png" alt="DOOM 2016" class="product-img">
-        <div class="product-body">
-          <h3>💥 DOOM 2016 💀 STEAM KEY 🔑 РФ+СНГ</h3>
-          <p class="price"><span class="new">990 ₽</span><span class="old">1 990 ₽</span></p>
-          <button class="buy-btn">Купить</button>
-        </div>
-      </article>
-      <article class="product-card">
-        <img src="https://www.figma.com/api/mcp/asset/87833d4d-b6b5-4872-a3df-364ab7ad3aab.png" alt="DOOM 2016" class="product-img">
-        <div class="product-body">
-          <h3>💥 DOOM 2016 💀 STEAM KEY 🔑 РФ+СНГ</h3>
-          <p class="price"><span class="new">990 ₽</span><span class="old">1 990 ₽</span></p>
-          <button class="buy-btn">Купить</button>
-        </div>
-      </article>
-      <article class="product-card">
-        <img src="https://www.figma.com/api/mcp/asset/87833d4d-b6b5-4872-a3df-364ab7ad3aab.png" alt="DOOM 2016" class="product-img">
-        <div class="product-body">
-          <h3>💥 DOOM 2016 💀 STEAM KEY 🔑 РФ+СНГ</h3>
-          <p class="price"><span class="new">990 ₽</span><span class="old">1 990 ₽</span></p>
-          <button class="buy-btn">Купить</button>
-        </div>
-      </article>
-      <article class="product-card">
-        <img src="https://www.figma.com/api/mcp/asset/87833d4d-b6b5-4872-a3df-364ab7ad3aab.png" alt="DOOM 2016" class="product-img">
-        <div class="product-body">
-          <h3>💥 DOOM 2016 💀 STEAM KEY 🔑 РФ+СНГ</h3>
-          <p class="price"><span class="new">990 ₽</span><span class="old">1 990 ₽</span></p>
-          <button class="buy-btn">Купить</button>
-        </div>
-      </article>
-    </div>
-  </section>
-
-  <!-- ===== Recommended products ===== -->
-  <section class="products-section">
-    <div class="section-header">
-      <h2>Рекомендованные товары</h2>
-      <button class="show-all-btn">Показать все</button>
-    </div>
-    <div class="product-grid">
-      <article class="product-card">
-        <img src="https://www.figma.com/api/mcp/asset/87833d4d-b6b5-4872-a3df-364ab7ad3aab.png" alt="DOOM 2016" class="product-img">
-        <div class="product-body">
-          <h3>💥 DOOM 2016 💀 STEAM KEY 🔑 РФ+СНГ</h3>
-          <p class="price"><span class="new">990 ₽</span><span class="old">1 990 ₽</span></p>
-          <button class="buy-btn">Купить</button>
-        </div>
-      </article>
-      <article class="product-card">
-        <img src="https://www.figma.com/api/mcp/asset/87833d4d-b6b5-4872-a3df-364ab7ad3aab.png" alt="DOOM 2016" class="product-img">
-        <div class="product-body">
-          <h3>💥 DOOM 2016 💀 STEAM KEY 🔑 РФ+СНГ</h3>
-          <p class="price"><span class="new">990 ₽</span><span class="old">1 990 ₽</span></p>
-          <button class="buy-btn">Купить</button>
-        </div>
-      </article>
-      <article class="product-card">
-        <img src="https://www.figma.com/api/mcp/asset/87833d4d-b6b5-4872-a3df-364ab7ad3aab.png" alt="DOOM 2016" class="product-img">
-        <div class="product-body">
-          <h3>💥 DOOM 2016 💀 STEAM KEY 🔑 РФ+СНГ</h3>
-          <p class="price"><span class="new">990 ₽</span><span class="old">1 990 ₽</span></p>
-          <button class="buy-btn">Купить</button>
-        </div>
-      </article>
-      <article class="product-card">
-        <img src="https://www.figma.com/api/mcp/asset/87833d4d-b6b5-4872-a3df-364ab7ad3aab.png" alt="DOOM 2016" class="product-img">
-        <div class="product-body">
-          <h3>💥 DOOM 2016 💀 STEAM KEY 🔑 РФ+СНГ</h3>
-          <p class="price"><span class="new">990 ₽</span><span class="old">1 990 ₽</span></p>
-          <button class="buy-btn">Купить</button>
-        </div>
-      </article>
-      <article class="product-card">
-        <img src="https://www.figma.com/api/mcp/asset/87833d4d-b6b5-4872-a3df-364ab7ad3aab.png" alt="DOOM 2016" class="product-img">
-        <div class="product-body">
-          <h3>💥 DOOM 2016 💀 STEAM KEY 🔑 РФ+СНГ</h3>
-          <p class="price"><span class="new">990 ₽</span><span class="old">1 990 ₽</span></p>
-          <button class="buy-btn">Купить</button>
-        </div>
-      </article>
-    </div>
-  </section>
-
-  <!-- ===== Other products ===== -->
-  <section class="products-section">
-    <div class="section-header">
-      <h2>Другие товары</h2>
-      <button class="show-all-btn">Показать все</button>
-    </div>
-    <div class="product-grid">
-      <article class="product-card">
-        <img src="https://www.figma.com/api/mcp/asset/87833d4d-b6b5-4872-a3df-364ab7ad3aab.png" alt="DOOM 2016" class="product-img">
-        <div class="product-body">
-          <h3>💥 DOOM 2016 💀 STEAM KEY 🔑 РФ+СНГ</h3>
-          <p class="price"><span class="new">990 ₽</span><span class="old">1 990 ₽</span></p>
-          <button class="buy-btn">Купить</button>
-        </div>
-      </article>
-      <article class="product-card">
-        <img src="https://www.figma.com/api/mcp/asset/87833d4d-b6b5-4872-a3df-364ab7ad3aab.png" alt="DOOM 2016" class="product-img">
-        <div class="product-body">
-          <h3>💥 DOOM 2016 💀 STEAM KEY 🔑 РФ+СНГ</h3>
-          <p class="price"><span class="new">990 ₽</span><span class="old">1 990 ₽</span></p>
-          <button class="buy-btn">Купить</button>
-        </div>
-      </article>
-      <article class="product-card">
-        <img src="https://www.figma.com/api/mcp/asset/87833d4d-b6b5-4872-a3df-364ab7ad3aab.png" alt="DOOM 2016" class="product-img">
-        <div class="product-body">
-          <h3>💥 DOOM 2016 💀 STEAM KEY 🔑 РФ+СНГ</h3>
-          <p class="price"><span class="new">990 ₽</span><span class="old">1 990 ₽</span></p>
-          <button class="buy-btn">Купить</button>
-        </div>
-      </article>
-      <article class="product-card">
-        <img src="https://www.figma.com/api/mcp/asset/87833d4d-b6b5-4872-a3df-364ab7ad3aab.png" alt="DOOM 2016" class="product-img">
-        <div class="product-body">
-          <h3>💥 DOOM 2016 💀 STEAM KEY 🔑 РФ+СНГ</h3>
-          <p class="price"><span class="new">990 ₽</span><span class="old">1 990 ₽</span></p>
-          <button class="buy-btn">Купить</button>
-        </div>
-      </article>
-      <article class="product-card">
-        <img src="https://www.figma.com/api/mcp/asset/87833d4d-b6b5-4872-a3df-364ab7ad3aab.png" alt="DOOM 2016" class="product-img">
-        <div class="product-body">
-          <h3>💥 DOOM 2016 💀 STEAM KEY 🔑 РФ+СНГ</h3>
-          <p class="price"><span class="new">990 ₽</span><span class="old">1 990 ₽</span></p>
-          <button class="buy-btn">Купить</button>
-        </div>
-      </article>
-    </div>
-  </section>
-
-  <!-- ===== Reviews ===== -->
-  <section class="reviews-section">
-    <div class="section-header">
-      <div>
-        <h2>Последние отзывы</h2>
-        <p class="section-sub">Все отзывы взяты с независимой площадки</p>
-      </div>
-      <button class="show-all-btn">Показать все</button>
-    </div>
-
-    <div class="reviews-grid">
-      <article class="review-card">
-        <div class="review-top">
-          <div class="review-author">
-            <img src="https://www.figma.com/api/mcp/asset/fc3c34af-c990-4930-a5fb-c264949f0d6a.png" alt="Bizidin">
-            <div>
-              <h4>Bizidin</h4>
-              <div class="review-rating"><span class="stars">★★★★★</span><span class="score">5.0</span></div>
-            </div>
-          </div>
-          <time class="review-time">Сегодня в 11:48</time>
-        </div>
-        <div class="review-text">Отзывчивый и приятный продавец, помог не только с товаром но и с другим вопросом. Рекомендую!</div>
-        <a href="#" class="review-item">
-          <img src="https://www.figma.com/api/mcp/asset/87833d4d-b6b5-4872-a3df-364ab7ad3aab.png" alt="">
-          <span>🌸 FunTime | Полностью готовый сервер под ключ ⚡</span>
-          <span class="review-price">139₽</span>
-        </a>
-      </article>
-
-      <article class="review-card">
-        <div class="review-top">
-          <div class="review-author">
-            <img src="https://www.figma.com/api/mcp/asset/fc3c34af-c990-4930-a5fb-c264949f0d6a.png" alt="Bizidin">
-            <div>
-              <h4>Bizidin</h4>
-              <div class="review-rating"><span class="stars">★★★★★</span><span class="score">5.0</span></div>
-            </div>
-          </div>
-          <time class="review-time">Сегодня в 11:48</time>
-        </div>
-        <div class="review-text">Отзывчивый и приятный продавец, помог не только с товаром но и с другим вопросом. Рекомендую!</div>
-        <a href="#" class="review-item">
-          <img src="https://www.figma.com/api/mcp/asset/87833d4d-b6b5-4872-a3df-364ab7ad3aab.png" alt="">
-          <span>🌸 FunTime | Полностью готовый сервер под ключ ⚡</span>
-          <span class="review-price">139₽</span>
-        </a>
-      </article>
-
-      <article class="review-card">
-        <div class="review-top">
-          <div class="review-author">
-            <img src="https://www.figma.com/api/mcp/asset/fc3c34af-c990-4930-a5fb-c264949f0d6a.png" alt="Bizidin">
-            <div>
-              <h4>Bizidin</h4>
-              <div class="review-rating"><span class="stars">★★★★★</span><span class="score">5.0</span></div>
-            </div>
-          </div>
-          <time class="review-time">Сегодня в 11:48</time>
-        </div>
-        <div class="review-text">Отзывчивый и приятный продавец, помог не только с товаром но и с другим вопросом. Рекомендую!</div>
-        <a href="#" class="review-item">
-          <img src="https://www.figma.com/api/mcp/asset/87833d4d-b6b5-4872-a3df-364ab7ad3aab.png" alt="">
-          <span>🌸 FunTime | Полностью готовый сервер под ключ ⚡</span>
-          <span class="review-price">139₽</span>
-        </a>
-      </article>
+    <div class="product-grid" id="productGrid">
+      <div class="grid-loader">Загрузка товаров…</div>
     </div>
   </section>
 
 </main>
 
-<!-- ===== Footer ===== -->
-<footer class="site-footer container">
-  <nav class="footer-nav">
-    <a href="#">Стать продавцом</a>
-    <a href="#">Бонусы</a>
-    <a href="#">Поддержка</a>
-    <a href="#">Гарантии</a>
-    <a href="#">Отзывы</a>
-  </nav>
-
-  <div class="footer-mid">
-    <div class="social-links">
-      <a href="#" aria-label="VK"><img src="https://www.figma.com/api/mcp/asset/9a3c3162-a238-4648-adae-4efc6d8991c6.svg" alt=""></a>
-      <a href="#" aria-label="Telegram"><img src="https://www.figma.com/api/mcp/asset/9ce90e3f-073a-44a2-9f72-cf77d5e86790.svg" alt=""></a>
-      <a href="#" aria-label="Дзен"><img src="https://www.figma.com/api/mcp/asset/014c9e15-83ca-4543-b630-360c75653a5a.svg" alt=""></a>
-      <a href="#" aria-label="Другое" class="social-square"><img src="https://www.figma.com/api/mcp/asset/e26243b8-6bdd-4725-8269-0ba30a2d9e1f.svg" alt=""></a>
+<!-- ===== Buy modal ===== -->
+<div class="modal-backdrop" id="buyModal" hidden>
+  <div class="modal">
+    <button class="modal-close" id="modalClose" aria-label="Закрыть">✕</button>
+    <h3>Оформление заказа</h3>
+    <div class="modal-product">
+      <img id="modalImg" alt="">
+      <div>
+        <div class="modal-name" id="modalName"></div>
+        <div class="modal-price" id="modalPrice"></div>
+        <div class="modal-discount" id="modalDiscount" hidden></div>
+      </div>
     </div>
-    <div class="payment-badges">
-      <span class="badge-visa">VISA</span>
-      <span class="badge-mir">мир</span>
-      <span class="badge-mc"><i></i><i></i></span>
+    <div class="promo-row">
+      <input type="text" id="promoInput" placeholder="Промокод (WELCOME10, GG500, LIMIT3, ONCEONLY)">
+      <button id="promoApply">Применить</button>
     </div>
+    <div class="promo-msg" id="promoMsg"></div>
+    <div class="modal-actions">
+      <button class="btn-success" id="paySuccess">💳 Оплатить (успех)</button>
+      <button class="btn-fail" id="payFail">Оплатить (неуспех)</button>
+    </div>
+    <div class="buy-status" id="buyStatus"></div>
   </div>
+</div>
 
-  <nav class="footer-legal">
-    <a href="#">Политика конфиденциальности</a>
-    <a href="#">Соглашение</a>
-    <a href="#">Договор-оферта</a>
-  </nav>
-</footer>
+<div class="toast" id="toast" hidden></div>
 
+<script src="app.js"></script>
 </body>
 </html>

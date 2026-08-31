@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Админка — GameMarket</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="catalog-btn" href="index.html" style="text-decoration:none">← На витрину</a>
+    <h2 style="margin-left:16px">Админка</h2>
+  </div>
+</header>
+
+<main>
+  <div class="admin-wrap">
+    <h1>Сверка и восстановление</h1>
+
+    <div class="admin-card">
+      <h2>Баланс журнала денежных движений</h2>
+      <div id="balanceInfo">Загрузка…</div>
+    </div>
+
+    <div class="admin-card">
+      <h2>«Оплачено, но не выдано»</h2>
+      <div id="paidNotDelivered"><div class="grid-loader">Загрузка…</div></div>
+    </div>
+
+    <div class="admin-card">
+      <h2>«Выдано, но не оплачено»</h2>
+      <div id="deliveredNotPaid"><div class="grid-loader">Загрузка…</div></div>
+    </div>
+
+    <div class="admin-card">
+      <h2>Пополнение остатка</h2>
+      <div class="restock-row">
+        <input id="restockSku" placeholder="SKU, напр. STEAM-TOPUP-500" value="STEAM-TOPUP-500">
+        <input id="restockCount" type="number" min="1" max="1000" value="10">
+        <button class="btn-sm" id="restockBtn">Пополнить</button>
+      </div>
+      <div class="promo-msg" id="restockMsg"></div>
+    </div>
+  </div>
+</main>
+
+<script src="admin.js"></script>
+</body>
+</html>
