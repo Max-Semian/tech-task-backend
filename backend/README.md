@@ -30,20 +30,23 @@ exactly-once держатся на UNIQUE-констрейнтах, CAS-пере
 ### Полный запуск в Docker (одна команда)
 
 ```bash
-docker compose up -d --build    # db + app(:3000) + supplier-a + supplier-b
+docker compose up -d --build    # db + app(:3000) + supplier-a/b + frontend(:8080)
 ```
 
 - `db` — PostgreSQL 16 (healthcheck)
 - `app` — API + фоновые воркеры выдачи/recovery; авто-сид каталога при старте (чистая БД)
 - `supplier-a` / `supplier-b` — заглушки поставщиков (healthcheck по `/stock`)
+- `frontend` — витрина (nginx, статические файлы `../frontend`) на **:8080**
 
-Проверка: `curl http://127.0.0.1:3000/health`.
+Проверка: `curl http://127.0.0.1:3000/health`, витрина — `http://localhost:8080`.
 
 Сценарии «в бою»:
 - выдача ключа: `POST /orders` → `POST /webhook/payment` → `GET /orders/:id` (`delivered`)
 - fallback: `docker compose stop supplier-a` → создать/оплатить заказ → выдача произойдёт
   через supplier-b (проверено: A — `timeout_exhausted`, B — `ok`)
 - 50 параллельных вебхуков: ровно одна выдача, одна запись в `money_ledger`
+- пустой остаток → `out_of_stock` → `/admin/stock/:sku/restock` + `/admin/orders/:id/redeliver`
+  → `delivered` (проверено вживую)
 
 ### Локальный запуск (без Docker для приложения)
 
@@ -118,6 +121,47 @@ python3 -m venv .venv && .venv/bin/pip install -r loadtest/requirements.txt
 
 Результат прогона N=1000: создание 1000 заказов за ~2.5s (398 req/s), 1000 оплат за ~1.9s
 (520 req/s), доставка 1000/1000 за ~6.5s — все проверки OK.
+
+---
+
+## Фуллстек: витрина (Этап 1) и промокод (Этап 4)
+
+Витрина — чистый HTML/CSS/JS (без фреймворков), файлы в `../frontend/`:
+`index.html` (витрина), `app.js` (интерактивы + флоу), `order.html` (страница статуса),
+`admin.html`/`admin.js` (админка), `images/` (локальные ассеты).
+
+### 5 обязательных интерактивов
+1. **Карусель баннера** — авто-переключение, стрелки, активные точки-индикаторы.
+2. **Меню «Каталог»** — открытие/закрытие по клику, закрытие кликом вне.
+3. **Переключатель валют $/₸/₽** — активное состояние (пересчёт не нужен).
+4. **Иконки сервисов** — плавное выделение при наведении.
+5. **Карточки товаров** — подъём/тень при наведении.
+
+### Флоу покупки
+`Купить` (карточка или блок Steam) → модал с ценой → промокод (необязательно) →
+`Оплатить (успех)` = `POST /orders` + `POST /orders/:id/pay {status:'paid'}` →
+poll статуса → ключ выдан + ссылка на `order.html?id=...`.
+`Оплатить (неуспех)` → `status:'failed'` → заказ `payment_failed`.
+
+### Новые API-эндпоинты (фуллстек)
+| Метод | Путь | Описание |
+|---|---|---|
+| GET | `/products` | каталог для витрины (sku, name, type, price, available) |
+| POST | `/orders/:id/pay` | эмуляция оплаты `{status: paid\|failed}` → шлёт вебхук |
+| POST | `/promo/validate` | проверка промокода без списания `{code, amount}` |
+| POST | `/orders` | `{sku, promocode?}` — атомарное списание лимита + скидка на сервере |
+
+### Промокоды (этап 4)
+- Таблица `promocodes(code, type percent\|amount, value, currency, max_uses, used_count)`.
+- Лимит соблюдается атомарно: `UPDATE promocodes SET used_count=used_count+1
+  WHERE code=$1 AND used_count<max_uses RETURNING *` — под параллельными запросами
+  применено **не более N раз** (тест `test/promocode.test.js`, 50 параллельных запросов → ровно 3).
+- Скидку считает **только сервер**; итоговая сумма и промокод сохраняются в заказе.
+
+### UI-тест (Playwright browser)
+```bash
+cd backend && .venv/bin/python loadtest/ui_smoke.py   # 13 проверок: витрина + флоу + админка
+```
 
 ---
 
