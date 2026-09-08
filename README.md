@@ -8,12 +8,12 @@
 > Исходные ТЗ: [`docs/tz-backend.md`](docs/tz-backend.md), [`docs/tz-fullstack.md`](docs/tz-fullstack.md),
 > [`docs/2-nd_part.md`](docs/2-nd_part.md). Чек-лист этапа 2 — [`docs/PLAN-stage2.md`](docs/PLAN-stage2.md).
 
-## Ссылки (после деплоя заполняются)
+## Ссылки (деплой на Railway)
 
-- Витрина: **https://frontend-… .up.railway.app**
-- API: **https://api-… .up.railway.app** · `/health`
-- Репозиторий/архив: приватный (ссылка высылается вместе с ответом)
-- **Затрачено времени на этап 2:** см. `backend/README.md` (раздел «Сколько времени»)
+- **Витрина:** https://frontend-production-d819.up.railway.app
+- **API:** https://api-production-7e83.up.railway.app · [`/health`](https://api-production-7e83.up.railway.app/health)
+- Репозиторий/архив: приватный — ссылка высылается вместе с ответом
+- **Затрачено времени на этап 2:** ≈ 2–2,5 часа активной работы (подробнее в `backend/README.md`)
 
 ---
 
