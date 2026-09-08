@@ -1,0 +1,42 @@
+# Один-origin режим (docker compose): nginx отдаёт статику И проксирует API.
+# Для /api/* буферизация выключена — иначе SSE (/api/events) не дойдёт до браузера.
+server {
+    listen       ${PORT};
+    listen       [::]:${PORT};
+    server_name  _;
+
+    root  /usr/share/nginx/html;
+    index index.html;
+    charset utf-8;
+    server_tokens off;
+    add_header X-Robots-Tag "noindex, nofollow" always;
+
+    location = /healthz {
+        access_log off;
+        default_type text/plain;
+        return 200 "ok\n";
+    }
+
+    location = /config.js {
+        expires -1;
+        add_header Cache-Control "no-store" always;
+    }
+
+    # API: /api/orders -> /orders, /api/events -> /events (SSE)
+    location /api/ {
+        proxy_pass ${API_PROXY_UPSTREAM}/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Connection "";
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+    }
+
+    location / {
+        try_files $uri $uri.html $uri/ =404;
+    }
+}

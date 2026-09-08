@@ -121,8 +121,11 @@ async function recordAttempt({ requestId, orderDbId, provider, attempt, out }) {
 
 // Фиксация результата выдачи. Guard по статусу -> ровно один факт выдачи,
 // даже если процесс джоба случился дважды (гонки/ретраи/восстановление).
+// При delivered: physical available -1 И held -1 в одной транзакции — зеркало
+// остатков и счётчик коммитнутых единиц не разъезжаются под гонками.
 async function finalizeDelivery(job, order, result) {
-  return withTransaction(pool, async (tx) => {
+  let touchedSku = null;
+  await withTransaction(pool, async (tx) => {
     if (result.ok) {
       const res = await tx.query(
         `UPDATE orders SET status='delivered', code=$2, delivered_at=now(), updated_at=now()
@@ -131,12 +134,15 @@ async function finalizeDelivery(job, order, result) {
         [order.id, result.code],
       );
       if (res.rowCount === 1) {
-        // зеркало остатков витрины (Этап 5) — в той же транзакции
         await tx.query(
-          `UPDATE stock_mirror SET available = greatest(available-1, 0), updated_at=now()
+          `UPDATE stock_mirror
+           SET available = greatest(available - 1, 0),
+               held = greatest(held - 1, 0),
+               updated_at = now()
            WHERE sku=$1`,
           [order.sku],
         );
+        touchedSku = order.sku;
         logger.info(
           { orderId: order.order_id, provider: result.provider, requestId: result.requestId },
           'delivery.completed',
@@ -156,6 +162,10 @@ async function finalizeDelivery(job, order, result) {
     }
     await tx.query(`UPDATE delivery_jobs SET status='done' WHERE id=$1`, [job.id]);
   });
+  if (touchedSku) {
+    const { publishOffer } = await import('./live.js');
+    await publishOffer(touchedSku);
+  }
 }
 
 export async function processJob(job, order) {

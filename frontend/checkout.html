@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Оформление — GameMarket</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="checkout">
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="catalog-btn" href="index.html" style="text-decoration:none">← На витрину</a>
+    <div class="search-bar"><input type="text" placeholder="GameMarket" disabled></div>
+  </div>
+</header>
+
+<main class="container">
+  <div class="checkout-card">
+    <h1>Оформление заказа</h1>
+    <div id="chProduct" class="ch-offer"></div>
+    <div id="chPriceLive" class="ch-price-live"></div>
+
+    <div class="promo-row">
+      <input type="text" id="chPromo" placeholder="Промокод (применится при оформлении)">
+    </div>
+    <div id="chPromoMsg" class="promo-msg"></div>
+
+    <div class="ch-deadline">
+      <span>До конца брони:</span>
+      <div id="chCountdown" class="ch-countdown">--:--</div>
+    </div>
+    <div id="chOrderAmount" class="ch-order-amount"></div>
+    <div id="chPhase" class="ch-phase"></div>
+    <div id="chStatus" class="ch-status"></div>
+
+    <div class="ch-actions">
+      <button type="button" class="btn-success" id="chOrderBtn">Оформить заказ</button>
+      <button type="button" class="btn-success" id="chPaySuccess" hidden>💳 Оплатить</button>
+      <button type="button" class="btn-fail" id="chPayFail" hidden>Оплатить (неуспех)</button>
+      <button type="button" class="btn-plain" id="chCancel">Отменить бронь</button>
+      <button type="button" class="btn-plain" id="chAgain" hidden>← Попробовать ещё раз</button>
+    </div>
+  </div>
+</main>
+
+<script src="config.js"></script>
+<script src="live.js"></script>
+<script src="checkout.js"></script>
+</body>
+</html>

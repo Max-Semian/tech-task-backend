@@ -136,3 +136,55 @@ CREATE TABLE IF NOT EXISTS promocodes (
   used_count INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- =====================================================================
+-- Маркетплейс-слой (2-я часть ТЗ): брони, продавцы, живая витрина, поиск
+-- =====================================================================
+
+-- Поиск подстроки по названию (мгновенный поиск по тысячам офферов)
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+-- Продавец и группа «тот же товар» (для предложения альтернативного продавца)
+ALTER TABLE products ADD COLUMN IF NOT EXISTS seller TEXT NOT NULL DEFAULT 'GameMarket';
+ALTER TABLE products ADD COLUMN IF NOT EXISTS product_group TEXT;
+
+CREATE INDEX IF NOT EXISTS idx_products_name_trgm ON products USING gin (name gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_products_group ON products(product_group) WHERE product_group IS NOT NULL;
+
+-- Коммитнутые, ещё не выданные единицы: активные брони + заказы created/paid/delivering.
+-- Витринное число «можно купить» = available - held.
+ALTER TABLE stock_mirror ADD COLUMN IF NOT EXISTS held BIGINT NOT NULL DEFAULT 0;
+
+-- Заказ из брони: sku (денормализация), дедлайн оплаты, ссылка на бронь
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS sku TEXT;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS pay_until TIMESTAMPTZ;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS reservation_id TEXT;
+
+UPDATE orders o SET sku = oi.sku
+  FROM order_items oi WHERE oi.order_id = o.id AND o.sku IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_orders_sku ON orders(sku);
+-- Только «маркетплейс»-заказы с дедлайном; legacy-заказы (pay_until NULL) sweeper не трогает
+CREATE INDEX IF NOT EXISTS idx_orders_pay_until ON orders(pay_until)
+  WHERE status='created' AND pay_until IS NOT NULL;
+
+-- Бронь единицы товара (first-class ресурс)
+CREATE TABLE IF NOT EXISTS reservations (
+  id           TEXT PRIMARY KEY,                 -- res_xxx
+  sku          TEXT NOT NULL REFERENCES products(sku),
+  status       TEXT NOT NULL DEFAULT 'active',   -- active | confirmed | cancelled | expired
+  purchase_key TEXT UNIQUE,                      -- идемпотентность клиента (двойной клик)
+  expires_at   TIMESTAMPTZ NOT NULL,
+  order_id     TEXT,                             -- публичный id заказа при подтверждении
+  price        BIGINT NOT NULL,                  -- цена на момент брони (для UI)
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  released_at  TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_reservations_active ON reservations(status, expires_at);
+CREATE INDEX IF NOT EXISTS idx_reservations_sku ON reservations(sku) WHERE status='active';
+
+-- Одна бронь -> не более одного заказа (защита от дублей на уровне БД)
+CREATE UNIQUE INDEX IF NOT EXISTS uq_orders_reservation
+  ON orders(reservation_id) WHERE reservation_id IS NOT NULL;

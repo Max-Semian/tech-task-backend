@@ -1,6 +1,7 @@
 import { pool, withTransaction } from '../db.js';
 import { linkUnappliedEvents } from './paymentService.js';
 import { applyPromocode } from './promoService.js';
+import { releaseReservationTx } from './reservationService.js';
 import { ApiError } from '../errors.js';
 import { logger } from '../logger.js';
 
@@ -112,4 +113,136 @@ export async function getOrder(publicId) {
     [publicId],
   );
   return res.rows[0] || null;
+}
+
+/* =====================================================================
+ * Маркетплейс-слой (2-я часть ТЗ): подтверждение брони заказом.
+ * Создаётся только один заказ на бронь (защита FOR UPDATE на строке
+ * reservations + частичный UNIQUE-индекс uq_orders_reservation).
+ * Цена берётся на момент подтверждения (текущая цена оффера) — если товар
+ * подорожал, пока лежал «в корзине», новая цена видна до оплаты.
+ * ===================================================================== */
+export async function createOrderFromReservation({ reservationId, promocode = null }) {
+  const outcome = await withTransaction(pool, async (tx) => {
+    const q = await tx.query('SELECT * FROM reservations WHERE id=$1 FOR UPDATE', [reservationId]);
+    if (!q.rows.length) throw new ApiError(404, 'reservation_not_found');
+    const r = q.rows[0];
+
+    // повторное подтверждение (refresh/двойной клик) — вернуть уже созданный заказ
+    if (r.status === 'confirmed') {
+      const existing = await tx.query(
+        'SELECT * FROM orders WHERE reservation_id=$1',
+        [reservationId],
+      );
+      if (existing.rows.length) return { order: existing.rows[0], created: false };
+    }
+    if (r.status === 'cancelled') throw new ApiError(409, 'reservation_cancelled');
+    if (r.status === 'expired') throw new ApiError(409, 'reservation_expired');
+
+    // бронь истекла к моменту подтверждения — освобождаем единицу и сообщаем клиенту
+    if (new Date(r.expires_at) <= new Date()) {
+      await releaseReservationTx(tx, r, 'expired');
+      return { outcome: 'expired', sku: r.sku };
+    }
+
+    // ЯВНЫЙ CAS active -> confirmed с проверкой дедлайна (та же ловушка, что и
+    // CAS статусов заказа в этапе 1): ни одного окна между «проверили активность»
+    // и «подтвердили», никакого двойного освобождения held на границе с lazy-release.
+    const cas = await tx.query(
+      `UPDATE reservations SET status='confirmed', updated_at=now()
+       WHERE id=$1 AND status='active' AND expires_at > now()
+       RETURNING id`,
+      [reservationId],
+    );
+    if (cas.rowCount === 0) {
+      // теоретическая граница истечения — перечитываем финальное состояние
+      const fresh = await tx.query('SELECT * FROM reservations WHERE id=$1', [reservationId]);
+      const cur = fresh.rows[0];
+      if (cur && cur.status === 'confirmed') {
+        const existing = await tx.query('SELECT * FROM orders WHERE reservation_id=$1', [reservationId]);
+        if (existing.rows.length) return { order: existing.rows[0], created: false };
+      }
+      throw new ApiError(409, 'reservation_expired');
+    }
+
+    const product = await tx.query('SELECT * FROM products WHERE sku=$1', [r.sku]);
+    if (!product.rows.length) throw new ApiError(404, 'sku_not_found');
+
+    let promoCode = null;
+    let discount = 0;
+    if (promocode) {
+      const promo = await applyPromocode(tx, promocode, product.rows[0].price);
+      promoCode = promo.code;
+      discount = promo.discount;
+    }
+
+    const finalAmount = Math.max(0, product.rows[0].price - discount);
+    const orderId = generateOrderId();
+    const res = await tx.query(
+      `INSERT INTO orders (order_id, amount, currency, promo_code, promo_discount,
+                           sku, pay_until, reservation_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+       RETURNING *`,
+      [orderId, finalAmount, product.rows[0].currency, promoCode, discount,
+        r.sku, r.expires_at, r.id],
+    );
+    const order = res.rows[0];
+
+    await tx.query(
+      `INSERT INTO order_items (order_id, sku, qty, price, currency)
+       VALUES ($1,$2,1,$3,$4)`,
+      [order.id, r.sku, product.rows[0].price, product.rows[0].currency],
+    );
+
+    await tx.query(
+      `UPDATE reservations SET order_id=$2, updated_at=now() WHERE id=$1`,
+      [r.id, orderId],
+    );
+
+    // вебхуки могли прийти раньше заказа — применяем в детерминированном порядке
+    await linkUnappliedEvents(tx, orderId);
+    logger.info({ orderId, sku: r.sku, amount: finalAmount }, 'order.confirmed_from_reservation');
+    return { order, created: true };
+  });
+
+  if (outcome && outcome.outcome === 'expired') {
+    const { publishOffer } = await import('./live.js');
+    await publishOffer(outcome.sku);
+    throw new ApiError(409, 'reservation_expired');
+  }
+  return outcome;
+}
+
+// Отмена заказа-из-брони (кнопка «Отменить бронь» после оформления): единица возвращается.
+export async function cancelMarketplaceOrder(orderId) {
+  let releasedSku = null;
+  const order = await withTransaction(pool, async (tx) => {
+    const q = await tx.query('SELECT * FROM orders WHERE order_id=$1 FOR UPDATE', [orderId]);
+    if (!q.rows.length) throw new ApiError(404, 'order_not_found');
+    const o = q.rows[0];
+    if (o.status !== 'created' || !o.reservation_id) throw new ApiError(409, 'cannot_cancel_order');
+
+    await tx.query(
+      `UPDATE orders SET status='expired', updated_at=now()
+       WHERE id=$1 AND status='created'`,
+      [o.id],
+    );
+    await tx.query(
+      `UPDATE reservations SET status='cancelled', released_at=now(), updated_at=now()
+       WHERE id=$1 AND status='confirmed'`,
+      [o.reservation_id],
+    );
+    await tx.query(
+      `UPDATE stock_mirror SET held = greatest(held - 1, 0), updated_at = now()
+       WHERE sku=$1 AND held > 0`,
+      [o.sku],
+    );
+    releasedSku = o.sku;
+    return { ...o, status: 'expired' };
+  });
+  if (releasedSku) {
+    const { publishOffer } = await import('./live.js');
+    await publishOffer(releasedSku);
+  }
+  return order;
 }

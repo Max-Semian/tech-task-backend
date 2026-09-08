@@ -27,6 +27,8 @@ services:
       WORKER_POLL_INTERVAL_MS: "200"
       RECOVERY_INTERVAL_MS: "10000"
       LOG_LEVEL: info
+      SEED_OFFERS: "${SEED_OFFERS:-3000}"
+      LIVE_SIMULATE: "${LIVE_SIMULATE:-1}"
     ports:
       - "3000:3000"
     depends_on:
@@ -53,6 +55,7 @@ services:
       ERROR_RATE: ${SUPPLIER_A_ERROR_RATE:-0.2}
       TIMEOUT_RATE: ${SUPPLIER_A_TIMEOUT_RATE:-0.1}
       TIMEOUT_MS: ${SUPPLIER_A_TIMEOUT_MS:-3000}
+      SEED_OFFERS: "${SEED_OFFERS:-3000}"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4100/stock"]
       interval: 5s
@@ -70,6 +73,7 @@ services:
       ERROR_RATE: ${SUPPLIER_B_ERROR_RATE:-0.3}
       TIMEOUT_RATE: ${SUPPLIER_B_TIMEOUT_RATE:-0.1}
       TIMEOUT_MS: ${SUPPLIER_B_TIMEOUT_MS:-3000}
+      SEED_OFFERS: "${SEED_OFFERS:-3000}"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4200/stock"]
       interval: 5s
@@ -85,7 +89,8 @@ services:
     container_name: tz-frontend
     environment:
       PORT: "80"
-      API_BASE: http://localhost:3000
+      API_BASE: /api
+      API_PROXY_UPSTREAM: http://app:3000
     ports:
       - "8080:80"
     depends_on:

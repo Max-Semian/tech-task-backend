@@ -113,3 +113,25 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   $('restockBtn').addEventListener('click', restock);
 });
+
+/* Смена цены оффера: сервер публикует SSE, витрина обновляется у всех без F5 */
+async function setPrice() {
+  const sku = $('priceSku').value.trim();
+  const price = parseInt($('priceValue').value, 10);
+  if (!sku || !Number.isFinite(price) || price <= 0) {
+    msg($('priceMsg'), 'Укажите SKU и цену', false);
+    return;
+  }
+  const r = await api('/admin/products/' + encodeURIComponent(sku) + '/price', {
+    method: 'POST',
+    body: JSON.stringify({ price }),
+  });
+  msg($('priceMsg'), r.status === 200
+    ? 'Цена ' + r.body.sku + ' = ' + r.body.price + ' ₽ (разослано по SSE)'
+    : 'Ошибка: ' + (r.body.error || r.status), r.status === 200);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const priceBtn = $('priceBtn');
+  if (priceBtn) priceBtn.addEventListener('click', setPrice);
+});

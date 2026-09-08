@@ -4,6 +4,8 @@ import { webhookRouter } from './routes/webhook.js';
 import { adminRouter } from './routes/admin.js';
 import { productsRouter } from './routes/products.js';
 import { promoRouter } from './routes/promo.js';
+import { reservationsRouter } from './routes/reservations.js';
+import { eventsRouter } from './routes/events.js';
 import { logger } from './logger.js';
 import { ApiError } from './errors.js';
 import { config } from './config.js';
@@ -40,6 +42,8 @@ export function createApp() {
   app.get('/health', (req, res) => res.json({ ok: true }));
   app.use('/orders', ordersRouter);
   app.use('/webhook/payment', webhookRouter);
+  app.use('/reservations', reservationsRouter);
+  app.use('/events', eventsRouter);
   // Админка меняет остатки и повторную выдачу — наружу её пускать нельзя.
   // Если ADMIN_TOKEN не задан (локально, тесты), проверка отключена: ТЗ
   // разрешает «без авторизации или с простым токеном».

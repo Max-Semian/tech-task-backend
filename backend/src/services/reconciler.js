@@ -112,7 +112,8 @@ export async function runRecoveryOnce() {
   const linked = await linkPendingEvents();
   const reclaimed = await reclaimStuckJobs();
   await retryStuckOrders();
-  return { linked, reclaimed };
+  const expiredHolds = await expireMarketplaceHoldsOnce();
+  return { linked, reclaimed, expiredHolds };
 }
 
 // Ручная повторная выдача (админка). Идемпотентна через enqueue + guard фиксации.
@@ -129,4 +130,42 @@ export async function redeliverOrder(publicOrderId) {
     logger.info({ orderId: publicOrderId, status: o.status }, 'admin.redeliver_enqueued');
     return { order: o, changed: true };
   });
+}
+
+// =====================================================================
+// 2-я часть ТЗ: освобождение протухших броней (backstop к ленивому release
+// на read-пути). Активные брони с истёкшим expires_at и заказы-из-брони
+// (created с протухшим pay_until) -> статус expired, единица возвращается
+// в продажу, живая витрина уведомляется SSE.
+// =====================================================================
+export async function expireMarketplaceHoldsOnce() {
+  const released = [];
+  await withTransaction(pool, async (tx) => {
+    const reservations = await tx.query(
+      `UPDATE reservations SET status='expired', released_at=now(), updated_at=now()
+       WHERE status='active' AND expires_at < now()
+       RETURNING sku`,
+    );
+    const orders = await tx.query(
+      `UPDATE orders SET status='expired', updated_at=now()
+       WHERE status='created' AND pay_until IS NOT NULL AND pay_until < now()
+       RETURNING sku`,
+    );
+    const dec = new Map();
+    for (const r of reservations.rows) dec.set(r.sku, (dec.get(r.sku) || 0) + 1);
+    for (const o of orders.rows) dec.set(o.sku, (dec.get(o.sku) || 0) + 1);
+    for (const [sku, n] of dec) {
+      await tx.query(
+        `UPDATE stock_mirror SET held = greatest(held - $2, 0), updated_at = now()
+         WHERE sku=$1`,
+        [sku, n],
+      );
+      released.push(sku);
+    }
+  });
+  for (const sku of new Set(released)) {
+    const { publishOffer } = await import('./live.js');
+    await publishOffer(sku);
+  }
+  return released.length;
 }

@@ -21,7 +21,9 @@ export function startBackgroundWorkers() {
   const recoveryTimer = setInterval(async () => {
     try {
       const r = await runRecoveryOnce();
-      if (r.linked > 0 || r.reclaimed > 0) logger.info({ linked: r.linked, reclaimed: r.reclaimed }, 'recovery pass');
+      if (r.linked > 0 || r.reclaimed > 0 || r.expiredHolds > 0) {
+        logger.info({ linked: r.linked, reclaimed: r.reclaimed, expiredHolds: r.expiredHolds }, 'recovery pass');
+      }
     } catch (e) {
       logger.error({ err: e.message }, 'recovery error');
     }

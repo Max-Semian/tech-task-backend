@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body data-page="index">
 
 <header class="site-header" style="position: relative;">
   <div class="container header-inner">
@@ -36,11 +36,11 @@
     <nav class="catalog-menu" id="catalogMenu" hidden>
       <div class="catalog-menu-inner">
         <div class="catalog-menu-sidebar">
-          <a href="#" class="active"><span>Игры и игровые сервисы</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></a>
-          <a href="#"><span>Игровые ценности</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></a>
-          <a href="#"><span>Мобильные игры</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></a>
-          <a href="#"><span>Сервисы и соцсети</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></a>
-          <a href="#"><span>Программы</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></a>
+          <a href="#" data-cat="key" class="active"><span>Игры и игровые сервисы</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></a>
+          <a href="#" data-cat="giftcard"><span>Игровые ценности</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></a>
+          <a href="#" data-cat="topup"><span>Мобильные игры</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></a>
+          <a href="#" data-cat="subscription"><span>Сервисы и соцсети</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></a>
+          <a href="#" data-cat="all"><span>Программы</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></a>
         </div>
         <div class="catalog-menu-content">
           <div class="catalog-col">
@@ -173,17 +173,31 @@
     </div>
   </section>
 
-  <!-- ===== Products ===== -->
+  <!-- ===== Products: каталог маркетплейса (2-я часть ТЗ) ===== -->
   <section class="products-section">
     <div class="section-header">
       <h2>Популярные товары</h2>
       <div class="filter-chips" id="filterChips" role="tablist"></div>
     </div>
-    <div class="product-grid" id="productGrid">
-      <div class="grid-loader">Загрузка товаров…</div>
+    <div class="resume-bar-wrap" id="resumeBar" hidden></div>
+    <div class="catalog-controls">
+      <label class="sort-field">Сортировка
+        <select id="sortSelect">
+          <option value="default">по умолчанию</option>
+          <option value="price_asc">сначала дешевле</option>
+          <option value="price_desc">сначала дороже</option>
+          <option value="name">по названию</option>
+        </select>
+      </label>
+      <label class="in-stock-field"><input type="checkbox" id="inStockOnly"> только в наличии</label>
+      <span class="catalog-count" id="catalogCount"></span>
+    </div>
+    <div class="product-grid" id="productGrid"></div>
+    <div id="catalogStatus" class="grid-loader"></div>
+    <div class="load-more-wrap">
+      <button type="button" id="loadMoreBtn" class="btn-success" hidden>Показать ещё</button>
     </div>
   </section>
-
 
   <!-- ===== Reviews ===== -->
   <section class="reviews-section">
@@ -230,35 +244,13 @@
   </footer>
 </div>
 
-<!-- ===== Buy modal ===== -->
-<div class="modal-backdrop" id="buyModal" hidden>
-  <div class="modal">
-    <button class="modal-close" id="modalClose" aria-label="Закрыть">✕</button>
-    <h3>Оформление заказа</h3>
-    <div class="modal-product">
-      <img id="modalImg" alt="">
-      <div>
-        <div class="modal-name" id="modalName"></div>
-        <div class="modal-price" id="modalPrice"></div>
-        <div class="modal-discount" id="modalDiscount" hidden></div>
-      </div>
-    </div>
-    <div class="promo-row">
-      <input type="text" id="promoInput" placeholder="Промокод (WELCOME10, GG500, LIMIT3, ONCEONLY)">
-      <button id="promoApply">Применить</button>
-    </div>
-    <div class="promo-msg" id="promoMsg"></div>
-    <div class="modal-actions">
-      <button class="btn-success" id="paySuccess">💳 Оплатить (успех)</button>
-      <button class="btn-fail" id="payFail">Оплатить (неуспех)</button>
-    </div>
-    <div class="buy-status" id="buyStatus"></div>
-  </div>
-</div>
 
 <div class="toast" id="toast" hidden></div>
 
 <script src="config.js"></script>
+<script src="live.js"></script>
+<script src="checkout.js"></script>
+<script src="catalog.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -855,3 +855,94 @@ main.container {
 
 /* hidden-атрибут должен перекрывать display:flex/block (иначе модал перехватывает клики) */
 .modal-backdrop[hidden], .toast[hidden] { display: none !important; }
+
+/* ================= 2-я часть ТЗ: каталог, live, checkout ================= */
+
+/* Каталог-контролы */
+.catalog-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 8px 0 18px;
+  font-size: 13px;
+  color: #6b7280;
+}
+.sort-field, .in-stock-field { display: inline-flex; align-items: center; gap: 6px; }
+.sort-field select {
+  border: 1px solid #e2e8f0; border-radius: 10px; padding: 7px 10px;
+  font-family: inherit; font-size: 13px; background: #fff;
+}
+.in-stock-field input { accent-color: #10b981; }
+.catalog-count { margin-left: auto; font-weight: 700; color: #1f2937; }
+
+/* resume-баннер незавершённой покупки */
+.resume-bar-wrap {
+  background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af;
+  padding: 10px 14px; border-radius: 12px; font-size: 14px; margin-bottom: 14px;
+}
+.resume-bar-wrap[hidden] { display: none; }
+.link-btn { background: none; border: none; color: #2563eb; font-weight: 700; cursor: pointer;
+  font-family: inherit; padding: 0; text-decoration: underline; }
+
+/* карточка: продавец + наличие */
+.product-seller { font-size: 12px; color: #8b96a9; margin: 4px 0 6px; }
+.stock-badge { display: inline-block; font-size: 12px; font-weight: 700; padding: 3px 10px;
+  border-radius: 999px; margin-bottom: 8px; }
+.stock-badge.in { background: #d1fae5; color: #059669; }
+.stock-badge.low { background: #fef3c7; color: #b45309; }
+.stock-badge.out { background: #f3f4f6; color: #9ca3af; }
+.product-card.is-out { opacity: .62; }
+.product-card.is-out .buy-btn { background: #d1d5db; color: #6b7280; cursor: not-allowed; }
+.buy-btn:disabled { background: #d1d5db; color: #6b7280; cursor: not-allowed; }
+.buy-btn:disabled:hover { background: #d1d5db; }
+
+.load-more-wrap { display: flex; justify-content: center; padding: 14px 0; }
+.load-more-wrap .btn-success { max-width: 260px; }
+
+.grid-loader.err { color: #dc2626; }
+
+/* status-badge для нового статуса */
+.status-badge.expired { background: #f3f4f6; color: #6b7280; }
+
+/* ===== checkout.html ===== */
+.checkout-card {
+  background: #fff; border: 1px solid #f2f4f6; border-radius: 24px;
+  max-width: 560px; margin: 32px auto; padding: 28px;
+  box-shadow: 0 18px 34px rgba(20,40,80,.08);
+}
+.checkout-card h1 { font-size: 24px; margin-bottom: 18px; }
+.ch-offer { display: flex; gap: 14px; align-items: center; padding: 14px;
+  background: #f8fafc; border-radius: 14px; margin-bottom: 10px; }
+.ch-offer img { width: 64px; height: 64px; border-radius: 12px; object-fit: cover; }
+.ch-offer h2 { font-size: 16px; margin: 0; }
+.ch-price-live { font-weight: 800; color: #4c9a2a; margin-bottom: 12px; }
+.ch-deadline { display: flex; align-items: center; gap: 12px; margin: 14px 0 4px;
+  font-size: 14px; color: #374151; }
+.ch-countdown {
+  font-variant-numeric: tabular-nums; font-size: 26px; font-weight: 800;
+  background: #0f172a; color: #fff; border-radius: 12px; padding: 4px 14px;
+}
+.ch-countdown.urgent { background: #dc2626; animation: blink 1s steps(2, start) infinite; }
+@keyframes blink { to { visibility: hidden; } }
+.ch-order-amount { font-size: 15px; margin: 10px 0 4px; }
+.price-warn { margin-top: 6px; padding: 8px 10px; background: #fef3c7; color: #92400e;
+  border-radius: 10px; font-size: 13px; font-weight: 600; }
+.ch-phase { font-size: 14px; color: #374151; margin-top: 8px; }
+.ch-status { margin-top: 10px; font-size: 13px; font-weight: 600; min-height: 18px; }
+.ch-status.err { color: #dc2626; }
+.ch-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.ch-actions button { flex: 1 1 150px; }
+.btn-plain { background: #f3f4f6; color: #374151; font-weight: 700; padding: 12px;
+  border-radius: 12px; cursor: pointer; }
+.btn-plain:hover { background: #e5e7eb; }
+.key-box { background: #f1f5f9; border: 1px dashed #94a3b8; border-radius: 10px;
+  padding: 10px; font-family: monospace; font-weight: 700; margin-top: 8px;
+  word-break: break-all; font-size: 15px; }
+
+/* ===== диалог «только что раскупили» ===== */
+.soldout-list { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+.soldout-alt { display: flex; align-items: center; gap: 10px; padding: 10px;
+  background: #f8fafc; border-radius: 12px; }
+.soldout-alt > div { flex: 1; display: flex; flex-direction: column; }
+.soldout-alt .buy-btn { width: auto; padding: 8px 12px; height: auto; font-size: 12px; }

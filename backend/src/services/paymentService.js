@@ -2,17 +2,23 @@ import { pool, withTransaction } from '../db.js';
 import { logger } from '../logger.js';
 import { ledgerRecordPayment } from './ledger.js';
 import { enqueueDeliveryJob } from './deliveryService.js';
+import { publishOffer } from './live.js';
 
 // =====================================================================
 // ЕДИНСТВЕННАЯ точка применения события оплаты к заказу.
 // Вызывается из: вебхука, POST /orders (линковка), reconciler.
 // Идемпотентность: CAS-переход по статусу + UNIQUE(event_id) + ON CONFLICT.
+//
+// `effects` — массив, в который складываются пост-коммитные действия
+// (освобождение единицы брони) для публикации SSE строго ПОСЛЕ COMMIT.
 // =====================================================================
-export async function applyPaymentEvent(tx, orderId, event) {
+export async function applyPaymentEvent(tx, orderId, event, effects = []) {
   if (event.status === 'paid') {
+    // для заказа-из-брони оплата возможна только до дедлайна pay_until
     const res = await tx.query(
       `UPDATE orders SET status='paid', paid_at=now(), updated_at=now()
        WHERE order_id=$1 AND status='created'
+         AND (pay_until IS NULL OR pay_until > now())
        RETURNING id, amount, currency`,
       [orderId],
     );
@@ -28,10 +34,20 @@ export async function applyPaymentEvent(tx, orderId, event) {
     const res = await tx.query(
       `UPDATE orders SET status='payment_failed', updated_at=now()
        WHERE order_id=$1 AND status='created'
-       RETURNING id`,
+       RETURNING id, sku, reservation_id`,
       [orderId],
     );
     if (res.rowCount === 1) {
+      const o = res.rows[0];
+      // заказ из брони: оплата не прошла -> единица возвращается в продажу
+      if (o.reservation_id && o.sku) {
+        await tx.query(
+          `UPDATE stock_mirror SET held = greatest(held - 1, 0), updated_at = now()
+           WHERE sku=$1 AND held > 0`,
+          [o.sku],
+        );
+        effects.push({ type: 'release', sku: o.sku });
+      }
       logger.info({ orderId, eventId: event.event_id }, 'payment.failed');
     }
   }
@@ -48,7 +64,7 @@ export async function applyPaymentEvent(tx, orderId, event) {
 // Применение накопленных необработанных событий в детерминированном порядке:
 // бизнес-время (created_at), при равенстве — время приёма (processed_at).
 // FOR UPDATE исключает конкурентное применение.
-export async function linkUnappliedEvents(tx, orderId) {
+export async function linkUnappliedEvents(tx, orderId, effects = []) {
   const unapplied = await tx.query(
     `SELECT * FROM payment_events
      WHERE order_id=$1 AND applied_at IS NULL
@@ -57,14 +73,15 @@ export async function linkUnappliedEvents(tx, orderId) {
     [orderId],
   );
   for (const ev of unapplied.rows) {
-    await applyPaymentEvent(tx, orderId, ev);
+    await applyPaymentEvent(tx, orderId, ev, effects);
   }
   return unapplied.rowCount;
 }
 
 // Обработка вебхука платежа (контракт из ТЗ). Всегда быстрый 200 для принятых.
 export async function handleWebhook({ event_id, order_id, status, amount, currency, created_at }) {
-  return withTransaction(pool, async (tx) => {
+  const effects = [];
+  const result = await withTransaction(pool, async (tx) => {
     // 1) идемпотентность по event_id: повторный вебхук = no-op
     const ins = await tx.query(
       `INSERT INTO payment_events (event_id, order_id, status, amount, currency, created_at)
@@ -86,7 +103,13 @@ export async function handleWebhook({ event_id, order_id, status, amount, curren
     }
 
     // 3) применить событие через единую точку
-    await applyPaymentEvent(tx, order_id, { event_id, status, amount, currency });
+    await applyPaymentEvent(tx, order_id, { event_id, status, amount, currency }, effects);
     return { duplicate: false, applied: true };
   });
+
+  // 4) пост-коммитные уведомления живой витрины
+  for (const e of effects) {
+    if (e.type === 'release') await publishOffer(e.sku);
+  }
+  return result;
 }

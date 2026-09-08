@@ -78,7 +78,7 @@ npm start                      # :3000
 npm test
 ```
 
-28 тестов, покрывают все 6 критериев приёмки + этапы 1/4/5:
+54 теста: этап 1 (6 критериев приёмки + 1/4/5) + маркетплейс-слой этапа 2:
 
 | Файл | Проверяет |
 |---|---|
@@ -92,6 +92,10 @@ npm test
 | `test/payment_failed.test.js` | Контракт вебхука: `status=failed` → `created → payment_failed`; повтор `event_id` = no-op; поздний `failed` после `paid` не откатывает |
 | `test/reconciler.test.js` | Этап 4: сверка, ledger, линковка, admin-эндпоинты |
 | `test/catalog.test.js` | Этап 5: 5000 SKU, план использует индексы, быстрое выполнение |
+| `test/reservation_race.test.js` | **2-я часть, Задача 2**: N параллельных броней последней единицы → один победитель, 409 + альтернативы; двойной `purchase_key` → одна бронь |
+| `test/reservation_lifecycle.test.js` | **Задачи 3+4**: expire (лениво+sweeper), CAS confirm, single-release held, оплата только до дедлайна, идемпотентность |
+| `test/live_events.test.js` | **Задача 1**: SSE-события цена/остаток/restock доходят до клиента |
+| `test/catalog_search.test.js` | **Задача 5**: поиск/фильтры/сортировка по 3000 офферов + EXPLAIN trgm |
 
 Каждый тест-файл поднимает отдельную тестовую БД `shop_test_<pid>` и свои поставщики
 на эфемерных портах — файлы можно гонять параллельно.
@@ -325,11 +329,45 @@ npm run supplier-failure-demo
 
 ---
 
+## Маркетплейс-слой (2-я часть ТЗ)
+
+Добавлено поверх ядра этапа 1, legacy-семантика не тронута.
+
+- **Брони** — `POST /reservations {sku, purchase_key}`: атомарный условный `UPDATE stock_mirror
+  SET held=held+1 WHERE sku=$1 AND available-held>=1`. Из параллельных запросов за последнюю
+  единицу ровно один получает `201`, остальные — `409 just_sold_out` с `alternatives[]`
+  (тот же `product_group` у других продавцов).
+- **Подтверждение** — `POST /orders {reservation_id, promocode?}`: заказ по ТЕКУЩЕЙ цене,
+  `pay_until = expires_at` брони. CAS `UPDATE reservations SET status='confirmed'
+  WHERE id=$1 AND status='active' AND expires_at > now()` в той же транзакции — закрывает
+  границу истечения и не даёт двух заказов на одну бронь. Legacy `POST /orders {sku}` — без изменений.
+- **Учёт остатков** — `available` (пул ключей) − `held` (брони + заказы created/paid/delivering) =
+  витринное «можно купить». `held` растёт при брони, падает при expire/cancel/payment_failed/delivered ровно один раз.
+- **Срок жизни** — ленивое освобождение на read-пути (GET протухшей брони) + sweeper
+  `expireMarketplaceHoldsOnce()` в recovery-воркере. Новый финальный статус заказа: `expired`.
+- **Live** — `GET /events` (SSE): публикация ПОСЛЕ COMMIT, heartbeat 25 c. Клиент на open/reconnect
+  сверяется полным `GET /products`. Через nginx-прокси — `proxy_buffering off` (см. frontend).
+- **Каталог** — `products.seller`, `products.product_group`, `stock_mirror.held`, `orders.sku/pay_until`,
+  `reservations`; поиск `pg_trgm` (GIN по `name`); генератор `catalogMarket.js` (детерминированный,
+  тысячи офферов, пулы ключей A/B).
+
+Новые эндпоинты: `/reservations`, `/reservations/:id`, `/reservations/:id/cancel`, `/orders/:id/cancel`,
+`/orders/:id/pay` (+фактический статус в ответе), `/events`, `/admin/products/:sku/price`, расширенный `GET /products`.
+
+### Сид маркетплейс-каталога
+
+```bash
+npm run seed-catalog-2 -- --count 3000     # или SEED_OFFERS=3000 при авто-сиде
+```
+
+---
+
 ## Переменные окружения
 
 `DATABASE_URL`, `PORT`, `SUPPLIER_A_URL`, `SUPPLIER_B_URL`, `DELIVERY_TIMEOUT_MS`,
 `DELIVERY_MAX_ATTEMPTS`, `DELIVERY_MAX_TIMEOUT_RETRIES`, `WORKER_POLL_INTERVAL_MS`,
-`RECOVERY_INTERVAL_MS`, `STUCK_AFTER_MS`, `LOG_LEVEL`, … (см. `src/config.js`).
+`RECOVERY_INTERVAL_MS`, `STUCK_AFTER_MS`, `LOG_LEVEL`,
+`RESERVATION_TTL_MS`, `SEED_OFFERS`, `LIVE_SIMULATE`, `CATALOG_DEFAULT_LIMIT`, `CATALOG_MAX_LIMIT`, … (см. `src/config.js`).
 
 ### `ADMIN_TOKEN` — защита админки
 
@@ -359,7 +397,7 @@ src/
   config.js                # env-конфигурация
   db.js                    # pg Pool, schema init, withTransaction
   catalog.js               # данные каталога (12 SKU) и пула ключей (50)
-  routes/                  # orders, webhook, admin
+  routes/                  # orders, webhook, reservations, events, products, admin
   services/
     orderService.js        # создание/чтение заказов
     paymentService.js      # applyPaymentEvent (единая точка), handleWebhook, linkUnappliedEvents
@@ -367,15 +405,22 @@ src/
     supplierClient.js      # HTTP-клиент поставщика (fetch + AbortController)
     reconciler.js          # сверка, redeliver, recovery
     ledger.js              # money_ledger
+    live.js                # SSE-шина (2-я часть)
+    reservationService.js  # брони: атомарный захват, lazy release, cancel
+    catalogMarket.js       # генератор каталога на тысячи офферов
+    seedService.js         # авто-сид + seedMarketplaceTx
   suppliers/
     mock.js                # заглушка поставщика A/B (дедуп по request_id/order_id, rates)
     server.js              # standalone HTTP-сервер поставщика
 scripts/                   # seed, race-check, supplier-failure-demo, webhook-stub, reconcile
-test/                      # node:test, 21 тест
+test/                      # node:test, 54 теста
 ```
 
 ---
 
 ## Сколько времени ушло
 
-Разработка заняла **~7–8 часов** суммарно (планирование + реализация + тесты + README).
+Разработка ядра (этап 1) заняла **~7–8 часов** (планирование + реализация + тесты + README).
+
+Этап 2 (маркетплейс: брони/гонка/SSE/поиск/витрина): **~2–2,5 часа активной работы**
+(планирование и ревью плана — отдельно; чек-лист — `docs/PLAN-stage2.md`).

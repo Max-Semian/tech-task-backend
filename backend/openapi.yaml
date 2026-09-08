@@ -21,6 +21,8 @@ tags:
   - name: Заказы
   - name: Оплата
   - name: Промокоды
+  - name: Брони (маркетплейс)
+  - name: Live-события
   - name: Админка
 
 paths:
@@ -40,8 +42,20 @@ paths:
   /products:
     get:
       tags: [Витрина]
-      summary: Каталог с остатками
-      description: Остаток берётся из зеркала `stock_mirror`, обновляемого транзакционно при выдаче и пополнении.
+      summary: Каталог с остатками (поиск/фильтры/пагинация)
+      description: |
+        Остаток `available` — это «можно купить прямо сейчас»: физический пул ключей
+        минус `held` (активные брони и заказы created/paid/delivering). Поиск по
+        подстроке названия через `pg_trgm` (тысячи офферов). Ответ — массив,
+        общее число — в заголовке `X-Total-Count`.
+      parameters:
+        - { name: q, in: query, schema: { type: string }, description: Подстрока в названии (ILIKE + trgm) }
+        - { name: type, in: query, schema: { type: string, enum: [topup, key, subscription, giftcard] } }
+        - { name: seller, in: query, schema: { type: string }, description: Фильтр по продавцу }
+        - { name: sort, in: query, schema: { type: string, enum: [price_asc, price_desc, name] } }
+        - { name: in_stock, in: query, schema: { type: string, enum: ["1"] }, description: Только доступные сейчас }
+        - { name: limit, in: query, schema: { type: integer, default: 60, maximum: 200 } }
+        - { name: offset, in: query, schema: { type: integer, default: 0 } }
       responses:
         "200":
           description: Список товаров
@@ -265,6 +279,73 @@ paths:
                   - { id: "2", order_id: ord_00123, entry_type: payment, amount: "1990", currency: RUB, event_key: evt_a1b2c3, created_at: "2026-01-01T12:00:00Z" }
                 total: 1990
 
+  /orders/{id}/cancel:
+    post:
+      tags: [Брони (маркетплейс)]
+      summary: Отменить заказ-из-брони до оплаты
+      description: Заказ должен быть в `created` и создан из брони. Единица возвращается в продажу.
+      responses:
+        "200": { description: Отменён }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /reservations:
+    post:
+      tags: [Брони (маркетплейс)]
+      summary: Атомарная бронь единицы (гонка за последнюю единицу)
+      description: |
+        `UPDATE stock_mirror SET held=held+1 WHERE sku=$1 AND available-held>=1` — из
+        параллельных запросов ровно один получает `201`. Проигравший получает `409
+        just_sold_out` с `alternatives` (тот же товар у других продавцов).
+        `purchase_key` защищает от двойного клика (повтор → `200`, та же бронь).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sku]
+              properties:
+                sku: { type: string }
+                purchase_key: { type: string, nullable: true, description: Идемпотентность клиента }
+                ttl_seconds: { type: integer, nullable: true, description: Сокращённый TTL для демо (мин. 20 с) }
+      responses:
+        "201": { description: Бронь создана }
+        "200": { description: Повторная бронь с тем же purchase_key }
+        "409": { description: just_sold_out + alternatives }
+
+  /reservations/{id}:
+    get:
+      tags: [Брони (маркетплейс)]
+      summary: Состояние брони (+ ленивое освобождение при истечении)
+      responses:
+        "200":
+          description: Бронь
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Reservation" }
+        "404": { $ref: "#/components/responses/Error" }
+    post:
+      tags: [Брони (маркетплейс)]
+      summary: Отменить бронь (до подтверждения заказом)
+      responses:
+        "200": { description: Отменена, единица возвращена }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /events:
+    get:
+      tags: [Live-события]
+      summary: Server-Sent Events — живые изменения офферов
+      description: |
+        Поток `data: {type: offer, sku, price, available, held, ts}` при изменении цены
+        или остатка (бронь/выдача/отмена/restock/смена цены). Heartbeat-комментарий
+        каждые 25 с. Через nginx-прокси нужен `proxy_buffering off`.
+      responses:
+        "200":
+          description: text/event-stream
+          content:
+            text/event-stream:
+              schema: { type: string }
+
 components:
   responses:
     Error:
@@ -284,8 +365,10 @@ components:
         type: { type: string, enum: [topup, key, subscription, giftcard] }
         price: { type: integer, description: Целые единицы валюты }
         currency: { type: string }
-        image: { type: string }
-        available: { type: integer, description: Остаток из зеркала }
+        image: { type: string, nullable: true }
+        seller: { type: string, description: Продавец оффера }
+        product_group: { type: string, nullable: true, description: Группа «тот же товар» }
+        available: { type: integer, description: Можно купить сейчас = available - held }
 
     OrderItem:
       type: object
@@ -305,6 +388,9 @@ components:
         code: { type: string, nullable: true, description: Выданный ключ; не null только при delivered }
         promo_code: { type: string, nullable: true }
         promo_discount: { type: integer }
+        sku: { type: string, nullable: true }
+        pay_until: { type: string, format: date-time, nullable: true, description: Дедлайн оплаты заказа-из-брони }
+        reservation_id: { type: string, nullable: true }
         items: { type: array, items: { $ref: "#/components/schemas/OrderItem" } }
         created_at: { type: string, format: date-time }
         paid_at: { type: string, format: date-time, nullable: true }
@@ -316,7 +402,19 @@ components:
         Основной путь: `created` → `paid` → `delivering` → `delivered`.
         Восстановимые: `out_of_stock`, `delivery_failed` — заказ не падает и доводится
         фоновым воркером либо через `/admin/orders/{id}/redeliver`.
-      enum: [created, paid, delivering, delivered, payment_failed, out_of_stock, delivery_failed]
+        Для заказа-из-брони `expired` — финальный статус «срок оплаты истёк».
+      enum: [created, paid, delivering, delivered, payment_failed, expired, out_of_stock, delivery_failed]
+
+    Reservation:
+      type: object
+      properties:
+        id: { type: string, example: res_xxx }
+        sku: { type: string }
+        status: { type: string, enum: [active, confirmed, cancelled, expired] }
+        expires_at: { type: string, format: date-time }
+        price: { type: integer, description: Цена на момент брони }
+        order_id: { type: string, nullable: true }
+        offer: { type: object, nullable: true, description: Актуальные данные оффера (цена/остаток/продавец) }
 
     WebhookAck:
       type: object

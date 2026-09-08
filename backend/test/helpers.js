@@ -35,7 +35,7 @@ export async function setupDb() {
   const { pool } = await import('../src/db.js');
   await pool.query(
     `DROP TABLE IF EXISTS money_ledger, delivery_jobs, delivery_attempts,
-       payment_events, order_items, orders, stock_mirror, products, promocodes CASCADE`,
+       payment_events, order_items, orders, reservations, stock_mirror, products, promocodes CASCADE`,
   );
   const sql = fs.readFileSync(SCHEMA_PATH, 'utf8');
   await pool.query(sql);
@@ -151,7 +151,7 @@ export async function postJson(baseUrl, pathname, body) {
 
 export async function getJson(baseUrl, pathname) {
   const res = await fetch(`${baseUrl}${pathname}`);
-  return { status: res.status, body: await res.json().catch(() => ({})) };
+  return { status: res.status, headers: res.headers, body: await res.json().catch(() => ({})) };
 }
 
 export async function getOrderRow(pool, publicId) {

@@ -4,6 +4,7 @@ import { pool, initSchema, waitForDb } from './db.js';
 import { seedIfEmpty } from './services/seedService.js';
 import { logger } from './logger.js';
 import { startBackgroundWorkers, stopBackgroundWorkers } from './worker.js';
+import { startLiveSimulator } from './services/live.js';
 
 async function main() {
   await waitForDb(pool);
@@ -15,12 +16,18 @@ async function main() {
     logger.info(`API listening on :${config.port}`);
   });
 
+  let stopSim = null;
   if (process.env.WORKER !== '0') {
     startBackgroundWorkers();
+    if (config.liveSim.enabled) {
+      logger.info(config.liveSim, 'live simulator started');
+      stopSim = startLiveSimulator({ ...config.liveSim, log: (m) => logger.info(m, 'live.sim.price') });
+    }
   }
 
   const shutdown = async () => {
     logger.info('shutting down');
+    if (stopSim) stopSim();
     stopBackgroundWorkers();
     server.close();
     await pool.end();

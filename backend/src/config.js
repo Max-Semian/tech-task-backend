@@ -14,6 +14,7 @@ const float = (v, d) => {
   const n = parseFloat(v ?? '');
   return Number.isFinite(n) ? n : d;
 };
+const bool = (v) => v === '1' || v === 'true';
 
 export const config = {
   port: num(process.env.PORT, 3000),
@@ -55,5 +56,31 @@ export const config = {
     stuckAfterMs: num(process.env.STUCK_AFTER_MS, 120000),
     // автоматическая повторная выдача из out_of_stock/delivery_failed
     autoRetryRecoverable: process.env.AUTO_RETRY_RECOVERABLE !== '0',
+  },
+
+  // ===== Маркетплейс-слой (2-я часть ТЗ) =====
+  reservation: {
+    // сколько держим бронь без оплаты
+    ttlMs: num(process.env.RESERVATION_TTL_MS, 300000),          // 5 минут
+    minTtlMs: num(process.env.RESERVATION_MIN_TTL_MS, 20000),    // нижняя граница (для демо)
+  },
+
+  catalog: {
+    defaultLimit: num(process.env.CATALOG_DEFAULT_LIMIT, 60),
+    maxLimit: num(process.env.CATALOG_MAX_LIMIT, 200),
+  },
+
+  marketplace: {
+    // размер синтетического каталога «тысячи офферов» (0 — только базовые 12 SKU)
+    seedOffers: num(process.env.SEED_OFFERS, 0),
+  },
+
+  liveSim: {
+    // «живая» витрина: если 1, фоновый демо-процесс плавно меняет цены
+    enabled: bool(process.env.LIVE_SIMULATE),
+    intervalMs: num(process.env.LIVE_SIM_INTERVAL_MS, 6000),
+    priceStepPct: float(process.env.LIVE_SIM_STEP_PCT, 0.04),
+    touchedPerTick: num(process.env.LIVE_SIM_TOUCH, 2),
+    priceMin: num(process.env.LIVE_SIM_PRICE_MIN, 50),
   },
 };

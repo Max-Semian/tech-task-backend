@@ -42,6 +42,7 @@ const STATUS_LABEL = {
   delivering: 'Идёт выдача ключа…',
   delivered: 'Выдан',
   payment_failed: 'Оплата не прошла',
+  expired: 'Срок оплаты истёк, бронь снята — товар вернулся в продажу',
   out_of_stock: 'Восстановимый: остаток закончился, ключ появится после пополнения',
   delivery_failed: 'Восстановимый: ошибка доставки, будет повторена',
 };
@@ -67,8 +68,14 @@ async function refresh() {
     document.getElementById('keyValue').textContent = o.code;
     keyBlock.hidden = false;
     clearInterval(timer);
-  } else if (o.status === 'payment_failed') {
+  } else if (o.status === 'payment_failed' || o.status === 'expired') {
     spinner.hidden = true;
+    keyBlock.hidden = true;
+    if (o.status === 'expired') {
+      err.hidden = false;
+      err.textContent = 'Срок оплаты истёк. Вы можете оформить покупку заново на витрине.';
+    }
+    clearInterval(timer);
   } else {
     spinner.hidden = false;
     keyBlock.hidden = true;

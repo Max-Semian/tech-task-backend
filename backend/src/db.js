@@ -37,7 +37,7 @@ export async function initSchema(poolInstance = pool, schemaPath = SCHEMA_PATH) 
 export async function resetSchema(poolInstance = pool) {
   await poolInstance.query(`
     DROP TABLE IF EXISTS money_ledger, delivery_jobs, delivery_attempts,
-      payment_events, order_items, orders, stock_mirror, products, promocodes CASCADE`);
+      payment_events, order_items, orders, reservations, stock_mirror, products, promocodes CASCADE`);
   await initSchema(poolInstance);
 }
 
